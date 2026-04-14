@@ -1,0 +1,17 @@
+{
+  "name": "How Long to Clear",
+  "short_name": "HowLong",
+  "description": "Cross-reference your Steam wishlist with HowLongToBeat data",
+  "start_url": "/howlong/",
+  "scope": "/howlong/",
+  "display": "standalone",
+  "background_color": "#0a0e1a",
+  "theme_color": "#0a0e1a",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
