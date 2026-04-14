@@ -2,6 +2,8 @@
 
 A progressive web app that cross-references your [Steam](https://store.steampowered.com) wishlist with [HowLongToBeat](https://howlongtobeat.com) data to help you decide what to play next depending on your time and budget. Built with Antigravity.
 
+Try it at [t0mg.github.io/howlong](https://t0mg.github.io/howlong)
+
 ## Features
 
 - 🎮 **Fetch your full Steam wishlist** by entering your Steam64 ID
