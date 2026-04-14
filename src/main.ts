@@ -1,7 +1,7 @@
 import './style.css';
 import type { AppState, GameEntry, SortField } from './api/types';
 import { REGION_MAP } from './api/types';
-import { fetchSteamWishlist, fetchSteamAppDetails } from './api/steam';
+import { fetchSteamWishlist, fetchSteamPriceBatch, fetchSteamMetadata } from './api/steam';
 import { searchHLTB } from './api/hltb';
 import { getCachedHLTB, setCachedHLTB, getCachedSteam, setCachedSteam } from './cache';
 import { renderLanding, renderLoading, renderError, renderDashboard } from './ui/render';
@@ -64,40 +64,35 @@ async function handleFetchWishlist(steamId: string) {
     state.loadingMessage = `Fetching details for ${wishlistItems.length} games...`;
     renderLoading(state);
 
-    // 2) Fetch metadata individually with concurrency control
-    // Steam appdetails is sensitive to batch size, so we fetch one by one
-    // but with multiple concurrent requests to maintain speed.
-    const games: GameEntry[] = [];
-    const CONCURRENCY = 5;
-    let completedCount = 0;
-    let throttleTimer: any = null;
+    // 2) Fetch Prices in Batches (Very efficient, avoids rate limits)
+    state.loadingMessage = 'Fetching game prices...';
+    renderLoading(state);
+    
+    const region = REGION_MAP[state.regionId] || REGION_MAP.us;
+    const priceMap: Record<string, any> = {};
+    const PRICE_BATCH_SIZE = 100;
 
-    const onThrottle = (until: number | null) => {
-      state.isThrottled = until !== null;
-      state.throttledUntil = until;
-      
-      // Clear existing timer
-      if (throttleTimer) clearInterval(throttleTimer);
-      
-      if (until) {
-        // Update UI every second during throttle
-        throttleTimer = setInterval(() => {
-          if (Date.now() >= until) {
-            clearInterval(throttleTimer);
-          } else {
-            renderLoading(state);
-          }
-        }, 1000);
+    for (let i = 0; i < wishlistItems.length; i += PRICE_BATCH_SIZE) {
+      if (state.isCancelled) break;
+      const batchIds = wishlistItems.slice(i, i + PRICE_BATCH_SIZE).map(item => item.appid.toString());
+      const batchResults = await fetchSteamPriceBatch(batchIds, region.cc);
+      if (batchResults) {
+        Object.assign(priceMap, batchResults);
       }
-      renderLoading(state);
-    };
+    }
 
-    // Use a simple queue for concurrency
+    // 3) Fetch Metadata individually (Cached at edge + Fallback scraping)
+    state.loadingMessage = `Fetching game details for ${wishlistItems.length} games...`;
+    renderLoading(state);
+
+    const games: GameEntry[] = [];
+    const CONCURRENCY = 10; // Can be higher now since metadata is cached at edge
+    let completedCount = 0;
+
     const fetchWithLimit = async (items: any[]) => {
       const activePromises: Promise<void>[] = [];
       
       for (const item of items) {
-        // Wait if we reached concurrency limit
         if (activePromises.length >= CONCURRENCY) {
           await Promise.race(activePromises);
         }
@@ -106,42 +101,38 @@ async function handleFetchWishlist(steamId: string) {
 
         const promise = (async () => {
           const appIdStr = item.appid.toString();
-          const region = REGION_MAP[state.regionId] || REGION_MAP.us;
-          const details = await fetchSteamAppDetails(
-            appIdStr, 
-            0, 
-            () => state.isCancelled, 
-            onThrottle,
-            region.cc
-          );
           
-          if (details && details[appIdStr]?.success) {
-            const data = details[appIdStr].data!;
-            const discountPercent = data.price_overview?.discount_percent || 0;
+          // Use Metadata endpoint (high TTL + scrape fallback)
+          const metaRes = await fetchSteamMetadata(appIdStr);
+          const priceData = priceMap[appIdStr]?.success ? priceMap[appIdStr].data?.price_overview : null;
+          
+          if (metaRes && metaRes[appIdStr]?.success) {
+            const data = metaRes[appIdStr].data!;
+            const discountPercent = priceData?.discount_percent || 0;
 
             const game: GameEntry = {
               appId: appIdStr,
               name: data.name,
               capsuleUrl: data.header_image,
-              releaseDate: data.release_date?.date || '',
+              releaseDate: '',
               reviewDesc: '',
               reviewPercent: 0,
               tags: [],
-              isFree: data.type === 'free' || (!data.price_overview && data.type !== 'dlc'),
+              isFree: data.type === 'free' || (!priceData && data.type !== 'dlc'),
               priority: item.priority || 999,
-              priceCurrency: data.price_overview?.currency || null,
-              priceInitial: data.price_overview ? data.price_overview.initial / 100 : null,
-              priceFinal: data.price_overview ? data.price_overview.final / 100 : null,
+              priceCurrency: priceData?.currency || null,
+              priceInitial: priceData ? priceData.initial / 100 : null,
+              priceFinal: priceData ? priceData.final / 100 : null,
               discountPercent,
               hltbId: null,
               hltbMain: null,
               hltbMainExtra: null,
               hltbCompletionist: null,
               hltbStatus: 'pending',
-              priceStatus: data.price_overview ? 'found' : (data.type === 'free' ? 'free' : 'not_found'),
+              priceStatus: priceData ? 'found' : (data.type === 'free' ? 'free' : 'not_found'),
             };
 
-            // Cache for future fallbacks
+            // Local cache for future sessions
             setCachedSteam(appIdStr, {
               name: game.name,
               capsuleUrl: game.capsuleUrl,
@@ -152,7 +143,7 @@ async function handleFetchWishlist(steamId: string) {
 
             games.push(game);
           } else {
-            // Fallback to cache
+            // Last resort: Fallback to local cache from previous full success
             const cached = getCachedSteam(appIdStr);
             if (cached) {
               games.push({
@@ -264,7 +255,6 @@ async function handleFetchWishlist(steamId: string) {
     // 4) Done — show dashboard
     state.loading = false;
     state.onStop = undefined;
-    if (throttleTimer) clearInterval(throttleTimer);
     
     renderDashboard(state, handleSort, handleReset, handleSettings);
   } catch (err: unknown) {

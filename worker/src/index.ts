@@ -43,28 +43,25 @@ export default {
         return jsonResponse(data);
       }
 
-      // GET /steam/price/:appId?cc=us
-      const priceMatch = path.match(/^\/steam\/price\/(\d+)$/);
-      if (priceMatch) {
-        const appId = priceMatch[1];
+      // GET /steam/prices-batch?ids=1,2,3&cc=us
+      if (path === '/steam/prices-batch') {
+        const ids = url.searchParams.get('ids') || '';
         const cc = url.searchParams.get('cc') || 'us';
-        const steamUrl = `https://store.steampowered.com/api/appdetails?appids=${appId}&filters=price_overview,basic&cc=${cc}`;
-        
-        console.log(`[Worker] Fetching AppDetails: ${appId} (CC: ${cc})`);
+        if (!ids) return jsonResponse({ error: 'Missing ids' }, 400);
 
-        // We use the cf: { cacheEverything } option to store the result on Cloudflare's edge
+        const steamUrl = `https://store.steampowered.com/api/appdetails?appids=${ids}&filters=price_overview&cc=${cc}`;
+        
+        console.log(`[Worker] Fetching PriceBatch: ${ids.split(',').length} items (CC: ${cc})`);
+
         const res = await fetch(steamUrl, {
           cf: {
             cacheEverything: true,
-            cacheTtl: 86400, // Cache for 24 hours
-            cacheKey: `steam-appdetails-${appId}-${cc}`,
+            cacheTtl: 86400, // 24h for prices
+            cacheKey: `steam-prices-${ids}-${cc}`,
           },
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          },
+          headers: { 'User-Agent': 'Mozilla/5.0' },
         });
 
-        // Forward status codes (especially 429/403) so the client can handle backoff
         if (res.status === 429 || res.status === 403) {
           return jsonResponse({ error: 'Steam rate limited', status: res.status }, res.status);
         }
@@ -74,7 +71,78 @@ export default {
           status: res.status,
           headers: {
             'Content-Type': 'application/json',
-            'Cache-Control': 'public, max-age=86400', // Browser-side cache too
+            'Cache-Control': 'public, max-age=3600', // Browser cache 1h
+            ...CORS_HEADERS,
+          },
+        });
+      }
+
+      // GET /steam/metadata/:appId
+      const metaMatch = path.match(/^\/steam\/metadata\/(\d+)$/);
+      if (metaMatch) {
+        const appId = metaMatch[1];
+        const steamUrl = `https://store.steampowered.com/api/appdetails?appids=${appId}&filters=basic`;
+        
+        console.log(`[Worker] Fetching Metadata: ${appId}`);
+
+        // Try API first
+        let res = await fetch(steamUrl, {
+          cf: {
+            cacheEverything: true,
+            cacheTtl: 604800, // 7 days for metadata
+            cacheKey: `steam-meta-${appId}`,
+          },
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+        });
+
+        // 429/403 or success: false? Try scraping
+        let data: any = null;
+        if (res.ok) {
+          const raw = await res.json() as any;
+          if (raw[appId]?.success) {
+            data = raw;
+          }
+        }
+
+        // Fallback: Scrape HTML for title
+        if (!data) {
+          console.warn(`[Worker] AppDetails failed for ${appId}. Falling back to HTML scraping...`);
+          const storeUrl = `https://store.steampowered.com/app/${appId}`;
+          const htmlRes = await fetch(storeUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0' }
+          });
+
+          if (htmlRes.ok) {
+            const html = await htmlRes.text();
+            const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+            if (titleMatch) {
+              let title = titleMatch[1].trim();
+              // Clean title: "Save 50% on Game Name on Steam" -> "Game Name"
+              title = title.replace(/ on Steam$/i, '').replace(/^Save \d+% on /i, '');
+              
+              data = {
+                [appId]: {
+                  success: true,
+                  data: {
+                    name: title,
+                    header_image: `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg`,
+                    type: 'game'
+                  }
+                }
+              };
+            }
+          }
+        }
+
+        if (!data) {
+          return jsonResponse({ error: 'Failed to fetch metadata' }, res.status || 500);
+        }
+
+        return new Response(JSON.stringify(data), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=86400', // Browser cache 24h
             ...CORS_HEADERS,
           },
         });

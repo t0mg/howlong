@@ -28,70 +28,46 @@ export async function fetchSteamWishlist(
 }
 
 /**
- * Fetches details (name, image, price) for a single Steam app.
- * Implements retry with backoff for rate limits (429/403).
+ * Fetches prices for a batch of AppIDs in one call.
  */
-export async function fetchSteamAppDetails(
-  appId: string,
-  retryCount = 0,
-  checkCancelled?: () => boolean,
-  onThrottle?: (until: number | null) => void,
+export async function fetchSteamPriceBatch(
+  appIds: string[],
   cc = 'us'
 ): Promise<SteamAppDetailsResponse | null> {
-  if (checkCancelled?.()) return null;
-  const url = `${PROXY_BASE}/steam/price/${appId}?cc=${cc}`;
+  if (appIds.length === 0) return null;
+  const ids = appIds.join(',');
+  const url = `${PROXY_BASE}/steam/prices-batch?ids=${ids}&cc=${cc}`;
   
   try {
     const res = await fetch(url);
-
-    if (res.status === 200) {
-      onThrottle?.(null); // Clear throttle state on success
-      return await res.json() as SteamAppDetailsResponse;
+    if (res.status === 200) return await res.json() as SteamAppDetailsResponse;
+    if (res.status === 429 || res.status === 403) {
+      console.warn(`[Steam] Batch price fetch rate limited (${res.status}).`);
+      return null;
     }
-
-    if (res.status === 429) {
-      const until = Date.now() + 10000;
-      console.warn(`[Steam] 429 Too Many Requests for ${appId}. Waiting 10s (Retry ${retryCount})...`);
-      onThrottle?.(until);
-      
-      for (let i = 0; i < 20; i++) { // Check every 500ms
-        if (checkCancelled?.()) {
-          onThrottle?.(null);
-          return null;
-        }
-        await sleep(500);
-      }
-      return fetchSteamAppDetails(appId, retryCount + 1, checkCancelled, onThrottle);
-    }
-
-    if (res.status === 403) {
-      const waitTime = 5 * 60 * 1000;
-      const until = Date.now() + waitTime;
-      console.warn(`[Steam] 403 Forbidden for ${appId}. Waiting 5m (Retry ${retryCount})...`);
-      onThrottle?.(until);
-
-      for (let i = 0; i < 600; i++) { // Check every 500ms (300s total)
-        if (checkCancelled?.()) {
-          onThrottle?.(null);
-          return null;
-        }
-        await sleep(500);
-      }
-      return fetchSteamAppDetails(appId, retryCount + 1, checkCancelled, onThrottle);
-    }
-
-    console.error(`[Steam] App ${appId} failed with status: ${res.status}`);
     return null;
   } catch (err) {
-    if (retryCount < 3) {
-      console.warn(`[Steam] Fetch error for ${appId}, retrying in 2s...`, err);
-      await sleep(2000);
-      return fetchSteamAppDetails(appId, retryCount + 1);
-    }
+    console.error('[Steam] Batch price fetch failed:', err);
     return null;
   }
 }
 
-function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+/**
+ * Fetches basic metadata (name, image) for a single app.
+ * Worker handles caching and scraping fallback.
+ */
+export async function fetchSteamMetadata(
+  appId: string
+): Promise<SteamAppDetailsResponse | null> {
+  const url = `${PROXY_BASE}/steam/metadata/${appId}`;
+  
+  try {
+    const res = await fetch(url);
+    if (res.status === 200) return await res.json() as SteamAppDetailsResponse;
+    return null;
+  } catch (err) {
+    console.error(`[Steam] Metadata fetch failed for ${appId}:`, err);
+    return null;
+  }
 }
+
