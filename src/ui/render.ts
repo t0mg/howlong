@@ -336,11 +336,11 @@ export function renderSettingsModal(
 
   regionSection.append(regionInfo, select);
 
-  // HLTB Cache
+  // HLTB & Steam Cache
   const hltbSection = el('div', { class: 'settings-item' });
   const hltbInfo = el('div', { class: 'settings-item-info' });
-  const hltbLabel = el('span', { class: 'settings-item-label' }, 'Clear HLTB Cache');
-  const hltbDesc = el('p', { class: 'settings-item-desc' }, 'Remove stored game durations. Results will be re-fetched next time.');
+  const hltbLabel = el('span', { class: 'settings-item-label' }, 'Clear HLTB and Steam Cache');
+  const hltbDesc = el('p', { class: 'settings-item-desc' }, 'Remove stored game durations and metadata. Results will be re-fetched next time.');
   hltbInfo.append(hltbLabel, hltbDesc);
 
   const hltbBtn = el('button', { class: 'btn-primary', style: 'background: var(--danger)' }, 'Clear Data');
@@ -426,7 +426,7 @@ function createGameCard(game: GameEntry, currency: string): HTMLElement {
     if (game.discountPercent > 0 && game.priceInitial !== null) {
       priceRow.appendChild(el('span', { class: 'price-original' }, formatCurrency(game.priceInitial, currency)));
     }
-    priceRow.appendChild(el('span', { class: 'price-current stale' }, 
+    priceRow.appendChild(el('span', { class: 'price-current stale' },
       `${formatCurrency(game.priceFinal || 0, currency)} (cached)`
     ));
   } else if (game.priceFinal !== null) {
