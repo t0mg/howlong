@@ -619,6 +619,12 @@ img {
   color: var(--text-secondary);
 }
 
+.price-current.stale {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.85rem;
+}
+
 .price-sale {
   font-size: 0.95rem;
   font-weight: 700;

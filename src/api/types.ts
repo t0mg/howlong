@@ -73,7 +73,21 @@ export interface GameEntry {
 
   // Status
   hltbStatus: 'pending' | 'found' | 'not_found';
-  priceStatus: 'pending' | 'found' | 'not_found' | 'free';
+  priceStatus: 'pending' | 'found' | 'not_found' | 'free' | 'stale';
+  isStale?: boolean;
+}
+
+export interface CachedSteamData {
+  name: string;
+  capsuleUrl: string;
+  priceFinal: number | null;
+  priceInitial: number | null;
+  discountPercent: number;
+}
+
+export interface SteamCacheEntry {
+  data: CachedSteamData;
+  timestamp: number;
 }
 
 export type SortField =

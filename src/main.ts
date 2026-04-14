@@ -3,7 +3,7 @@ import type { AppState, GameEntry, SortField } from './api/types';
 import { REGION_MAP } from './api/types';
 import { fetchSteamWishlist, fetchSteamAppDetails } from './api/steam';
 import { searchHLTB } from './api/hltb';
-import { getCachedHLTB, setCachedHLTB } from './cache';
+import { getCachedHLTB, setCachedHLTB, getCachedSteam, setCachedSteam } from './cache';
 import { renderLanding, renderLoading, renderError, renderDashboard } from './ui/render';
 
 // ── App State ────────────────────────────────────────────────
@@ -119,7 +119,7 @@ async function handleFetchWishlist(steamId: string) {
             const data = details[appIdStr].data!;
             const discountPercent = data.price_overview?.discount_percent || 0;
 
-            games.push({
+            const game: GameEntry = {
               appId: appIdStr,
               name: data.name,
               capsuleUrl: data.header_image,
@@ -139,7 +139,45 @@ async function handleFetchWishlist(steamId: string) {
               hltbCompletionist: null,
               hltbStatus: 'pending',
               priceStatus: data.price_overview ? 'found' : (data.type === 'free' ? 'free' : 'not_found'),
+            };
+
+            // Cache for future fallbacks
+            setCachedSteam(appIdStr, {
+              name: game.name,
+              capsuleUrl: game.capsuleUrl,
+              priceInitial: game.priceInitial,
+              priceFinal: game.priceFinal,
+              discountPercent: game.discountPercent,
             });
+
+            games.push(game);
+          } else {
+            // Fallback to cache
+            const cached = getCachedSteam(appIdStr);
+            if (cached) {
+              games.push({
+                appId: appIdStr,
+                name: cached.name,
+                capsuleUrl: cached.capsuleUrl,
+                releaseDate: '',
+                reviewDesc: '',
+                reviewPercent: 0,
+                tags: [],
+                isFree: false,
+                priority: item.priority || 999,
+                priceCurrency: null,
+                priceInitial: cached.priceInitial,
+                priceFinal: cached.priceFinal,
+                discountPercent: cached.discountPercent,
+                hltbId: null,
+                hltbMain: null,
+                hltbMainExtra: null,
+                hltbCompletionist: null,
+                hltbStatus: 'pending',
+                priceStatus: 'stale',
+                isStale: true,
+              });
+            }
           }
 
           completedCount++;

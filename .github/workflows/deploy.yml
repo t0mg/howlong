@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+env:
+  VITE_PROXY_BASE: ${{ vars.VITE_PROXY_BASE }}
+
 permissions:
   contents: read
   pages: write

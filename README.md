@@ -1,6 +1,6 @@
 # How Long to Clear ⏱️
 
-A progressive web app that cross-references your [Steam](https://store.steampowered.com) wishlist with [HowLongToBeat](https://howlongtobeat.com) data — see how many hours (and dollars) stand between you and gaming bliss.
+A progressive web app that cross-references your [Steam](https://store.steampowered.com) wishlist with [HowLongToBeat](https://howlongtobeat.com) data to help you decide what to play next depending on your time and budget. Built with Antigravity.
 
 ## Features
 
@@ -10,7 +10,7 @@ A progressive web app that cross-references your [Steam](https://store.steampowe
 - 📊 **Sort & analyze** — sort by duration, price, discount, priority, or name
 - 📈 **Aggregate stats** — total wishlist hours, total value, and total potential savings
 - 📱 **Installable PWA** — works offline and can be added to your home screen
-- 🌙 **Premium dark theme** with glassmorphism and smooth animations
+- 🌙 **Premium dark theme** with glassmorphism and smooth animations for that classic Vibe Coded feel
 
 ## Prerequisites
 
@@ -92,8 +92,6 @@ This project is auto-deployed to GitHub Pages on every push to `main` via the in
 howlong/
 ├─ .github/workflows/deploy.yml   # GitHub Actions → GitHub Pages
 ├─ public/
-│  ├─ icon-192.png                 # PWA icon
-│  ├─ icon-512.png                 # PWA icon
 │  ├─ icon.svg                     # SVG icon
 │  ├─ manifest.json                # PWA manifest
 │  └─ sw.js                        # Service worker

@@ -4,4 +4,4 @@
  * In production, point this to your deployed Cloudflare Worker URL.
  */
 export const PROXY_BASE: string =
-  import.meta.env.VITE_PROXY_BASE || 'https://howlong-proxy.tom-1bb.workers.dev';
+  import.meta.env.VITE_PROXY_BASE;

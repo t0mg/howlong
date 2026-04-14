@@ -422,6 +422,13 @@ function createGameCard(game: GameEntry, currency: string): HTMLElement {
   const priceRow = el('div', { class: 'price-row' });
   if (game.isFree) {
     priceRow.appendChild(el('span', { class: 'price-free' }, 'Free to Play'));
+  } else if (game.priceStatus === 'stale') {
+    if (game.discountPercent > 0 && game.priceInitial !== null) {
+      priceRow.appendChild(el('span', { class: 'price-original' }, formatCurrency(game.priceInitial, currency)));
+    }
+    priceRow.appendChild(el('span', { class: 'price-current stale' }, 
+      `${formatCurrency(game.priceFinal || 0, currency)} (cached)`
+    ));
   } else if (game.priceFinal !== null) {
     if (game.discountPercent > 0 && game.priceInitial !== null) {
       priceRow.appendChild(el('span', { class: 'price-original' }, formatCurrency(game.priceInitial, currency)));
