@@ -32,7 +32,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Don't cache API calls
   if (event.request.url.includes('workers.dev') ||
-    event.request.url.includes('steampowered.com')) {
+    event.request.url.includes('steampowered.com') ||
+    event.request.url.includes('sw.js') ||
+    event.request.url.includes('manifest.json')) {
     return;
   }
 
