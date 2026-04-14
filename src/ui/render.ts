@@ -68,7 +68,7 @@ export function renderLanding(
 
   const title = el('h1', { class: 'landing-title' }, 'How Long to Clear');
   const subtitle = el('p', { class: 'landing-subtitle' },
-    'Cross-reference your Steam wishlist with HowLongToBeat — see how many hours (and dollars) stand between you and gaming bliss.'
+    'Find your next wishlisted game to play based on your time and budget.'
   );
 
   const form = el('form', { class: 'landing-form', id: 'steam-form' });
@@ -95,7 +95,7 @@ export function renderLanding(
   form.appendChild(inputGroup);
 
   const helpText = el('p', { class: 'help-text' });
-  helpText.innerHTML = `Your Steam profile & wishlist must be <strong>public</strong>. Find your Steam64 ID at <a href="https://steamid.io" target="_blank" rel="noopener">steamid.io</a>.`;
+  helpText.innerHTML = `Your Steam profile & wishlist must be <strong>public</strong>. Find your Steam64 ID at <a href="https://steamid.io" target="_blank" rel="noopener">steamid.io</a>. No user data is stored. <a href="https://github.com/t0mg/howlong">Project source</a>.`;
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -381,13 +381,12 @@ export function renderSettingsModal(
 
 // ── Components ───────────────────────────────────────────────
 
-function createStatCard(icon: string, label: string, value: string): HTMLElement {
-  const card = el('div', { class: 'stat-card' });
-  const iconEl = el('span', { class: 'stat-icon' }, icon);
-  const valEl = el('span', { class: 'stat-value' }, value);
-  const labelEl = el('span', { class: 'stat-label' }, label);
-  card.append(iconEl, valEl, labelEl);
-  return card;
+function createStatCard(icon: string, label: string, value: string) {
+  return el('div', { class: 'stat-card' },
+    el('span', { class: 'stat-icon' }, icon),
+    el('span', { class: 'stat-value' }, value),
+    el('span', { class: 'stat-label' }, label)
+  );
 }
 
 function createGameCard(game: GameEntry, currency: string): HTMLElement {
@@ -421,7 +420,7 @@ function createGameCard(game: GameEntry, currency: string): HTMLElement {
   // Price
   const priceRow = el('div', { class: 'price-row' });
   if (game.isFree) {
-    priceRow.appendChild(el('span', { class: 'price-free' }, 'Free to Play'));
+    priceRow.appendChild(el('span', { class: 'price-free' }, 'Free'));
   } else if (game.priceStatus === 'stale') {
     if (game.discountPercent > 0 && game.priceInitial !== null) {
       priceRow.appendChild(el('span', { class: 'price-original' }, formatCurrency(game.priceInitial, currency)));
