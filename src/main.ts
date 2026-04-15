@@ -3,7 +3,7 @@ import type { AppState, GameEntry, SortField } from './api/types';
 import { REGION_MAP } from './api/types';
 import { fetchSteamWishlist, fetchSteamPriceBatch, fetchSteamMetadata } from './api/steam';
 import { searchHLTB, formatDurationHours } from './api/hltb';
-import { getCachedHLTB, setCachedHLTB, getCachedSteam, setCachedSteam, getSetting, setSetting } from './cache';
+import { getCachedHLTB, setCachedHLTB, getCachedSteam, setCachedSteam, getSetting, setSetting, clearHLTBCache, clearSteamCache } from './cache';
 import { renderLanding, renderLoading, renderError, renderDashboard } from './ui/render';
 
 // ── App State ────────────────────────────────────────────────
@@ -299,21 +299,40 @@ async function handleFetchWishlist(steamId: string) {
 
 async function handleSettings() {
   const { renderSettingsModal } = await import('./ui/render');
-  const { clearCache } = await import('./cache');
+
+  let isDirty = false;
 
   renderSettingsModal(
-    () => clearCache(),
+    async () => {
+      await clearHLTBCache();
+      isDirty = true;
+    },
+    async () => {
+      await clearSteamCache();
+      isDirty = true;
+    },
     () => handleClearAppCache(),
     async (regionId) => {
       state.regionId = regionId;
       await setSetting('regionId', regionId);
-      window.location.reload();
+      isDirty = true;
+    },
+    () => {
+      if (isDirty) {
+        window.location.reload();
+      }
     },
     state.regionId
   );
 }
 
 async function handleClearAppCache() {
+  console.log('Clearing app cache...');
+  // Clear Databases
+  const { clearCache } = await import('./cache');
+  await clearCache();
+
+  console.log('Clearing service worker...');
   // Clear Service Worker
   if ('serviceWorker' in navigator) {
     const registrations = await navigator.serviceWorker.getRegistrations();
@@ -322,12 +341,14 @@ async function handleClearAppCache() {
     }
   }
 
+  console.log('Clearing cache storage...');
   // Clear Cache Storage
   const cacheNames = await caches.keys();
   for (const name of cacheNames) {
     await caches.delete(name);
   }
 
+  console.log('Reloading...');
   // Force reload
   window.location.reload();
 }

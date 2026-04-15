@@ -42,6 +42,20 @@ export async function delSetting(key: string): Promise<void> {
 }
 
 /**
+ * Clears only the HLTB cache
+ */
+export async function clearHLTBCache(): Promise<void> {
+  await idbClear(hltbStore);
+}
+
+/**
+ * Clears only the Steam metadata cache
+ */
+export async function clearSteamCache(): Promise<void> {
+  await idbClear(steamStore);
+}
+
+/**
  * Wipes all caches and settings
  */
 export async function clearCache(): Promise<void> {

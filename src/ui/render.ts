@@ -336,9 +336,11 @@ function renderGameGrid(sortedGames: GameEntry[], currency: string): HTMLElement
 }
 
 export function renderSettingsModal(
-  onClearCache: () => void,
-  onClearAppCache: () => void,
+  onClearHLTB: () => void,
+  onClearSteam: () => void,
+  onHardReset: () => void,
   onRegionChange: (regionId: string) => void,
+  onClose: () => void,
   currentRegionId: string
 ): void {
   const overlay = el('div', { class: 'modal-overlay' });
@@ -347,11 +349,16 @@ export function renderSettingsModal(
   const title = el('h2', { class: 'modal-title' }, 'Settings');
   const desc = el('p', { class: 'modal-desc' }, 'Manage your application preferences and local data.');
 
+  const close = () => {
+    onClose();
+    overlay.remove();
+  };
+
   // Region Selection
   const regionSection = el('div', { class: 'settings-item' });
   const regionInfo = el('div', { class: 'settings-item-info' });
   const regionLabel = el('span', { class: 'settings-item-label' }, 'Steam Store Region');
-  const regionDesc = el('p', { class: 'settings-item-desc' }, 'Select region for accurate local prices. Changing this will reload the app.');
+  const regionDesc = el('p', { class: 'settings-item-desc' }, 'Select region for accurate local prices.');
   regionInfo.append(regionLabel, regionDesc);
 
   const select = el('select', { class: 'btn-ghost', style: 'padding: 0.5rem;' }) as HTMLSelectElement;
@@ -363,46 +370,66 @@ export function renderSettingsModal(
 
   regionSection.append(regionInfo, select);
 
-  // HLTB & Steam Cache
+  // HLTB Cache
   const hltbSection = el('div', { class: 'settings-item' });
   const hltbInfo = el('div', { class: 'settings-item-info' });
-  const hltbLabel = el('span', { class: 'settings-item-label' }, 'Clear HLTB and Steam Cache');
-  const hltbDesc = el('p', { class: 'settings-item-desc' }, 'Remove stored game durations and metadata. Results will be re-fetched next time.');
+  const hltbLabel = el('span', { class: 'settings-item-label' }, 'Clear HLTB Data');
+  const hltbDesc = el('p', { class: 'settings-item-desc' }, 'Remove stored game durations and re-fetch.');
   hltbInfo.append(hltbLabel, hltbDesc);
 
-  const hltbBtn = el('button', { class: 'btn-primary', style: 'background: var(--danger)' }, 'Clear Data');
+  const hltbBtn = el('button', { class: 'btn-primary', style: 'background: var(--accent-secondary)' }, 'Clear HLTB');
   hltbBtn.addEventListener('click', () => {
-    onClearCache();
-    overlay.remove();
+    onClearHLTB();
+    hltbBtn.textContent = 'Cleared!';
+    hltbBtn.style.opacity = '0.7';
+    hltbBtn.disabled = true;
   });
   hltbSection.append(hltbInfo, hltbBtn);
 
-  // App Cache (Service Worker)
+  // Steam Cache
+  const steamSection = el('div', { class: 'settings-item' });
+  const steamInfo = el('div', { class: 'settings-item-info' });
+  const steamLabel = el('span', { class: 'settings-item-label' }, 'Clear Steam Game Data');
+  const steamDesc = el('p', { class: 'settings-item-desc' }, 'Remove cached metadata and re-fetch. Prices are fetched live.');
+  steamInfo.append(steamLabel, steamDesc);
+
+  const steamBtn = el('button', { class: 'btn-primary', style: 'background: var(--accent-secondary)' }, 'Clear Steam');
+  steamBtn.addEventListener('click', () => {
+    onClearSteam();
+    steamBtn.textContent = 'Cleared!';
+    steamBtn.style.opacity = '0.7';
+    steamBtn.disabled = true;
+  });
+  steamSection.append(steamInfo, steamBtn);
+
+  // Hard Reset
   const appSection = el('div', { class: 'settings-item' });
   const appInfo = el('div', { class: 'settings-item-info' });
   const appLabel = el('span', { class: 'settings-item-label' }, 'App Cache (Hard Reset)');
-  const appDesc = el('p', { class: 'settings-item-desc' }, 'Unregister Service Worker and clear all internal caches. Page will reload.');
+  const appDesc = el('p', { class: 'settings-item-desc' }, 'Unregister Service Worker and clear all internal databases. App will reload.');
   appInfo.append(appLabel, appDesc);
 
-  const appBtn = el('button', { class: 'btn-primary', style: 'background: var(--accent)' }, 'Hard Reset');
+  const appBtn = el('button', { class: 'btn-primary', style: 'background: var(--danger)' }, 'Full Reset');
   appBtn.addEventListener('click', () => {
-    onClearAppCache();
-    overlay.remove();
+    if (confirm('Are you sure? This will wipe ALL cached data and settings.')) {
+      onHardReset();
+      overlay.remove();
+    }
   });
   appSection.append(appInfo, appBtn);
 
   const footer = el('div', { class: 'modal-footer' });
   const closeBtn = el('button', { class: 'btn-ghost' }, 'Close');
-  closeBtn.addEventListener('click', () => overlay.remove());
+  closeBtn.addEventListener('click', close);
   footer.append(closeBtn);
 
-  card.append(title, desc, regionSection, hltbSection, appSection, footer);
+  card.append(title, desc, regionSection, hltbSection, steamSection, appSection, footer);
   overlay.appendChild(card);
   document.body.appendChild(overlay);
 
   // Close on backdrop click
   overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) overlay.remove();
+    if (e.target === overlay) close();
   });
 }
 
