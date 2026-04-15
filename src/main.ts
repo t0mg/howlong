@@ -1,5 +1,5 @@
 import './style.css';
-import type { AppState, GameEntry, SortField } from './api/types';
+import type { AppState, GameEntry, SortField, SortState } from './api/types';
 import { REGION_MAP } from './api/types';
 import { fetchSteamWishlist, fetchSteamPriceBatch, fetchSteamMetadata } from './api/steam';
 import { searchHLTB, formatDurationHours } from './api/hltb';
@@ -31,6 +31,13 @@ async function init() {
   // Load settings from IDB
   state.regionId = (await getSetting<string>('regionId')) || 'us';
   const lastSteamId = (await getSetting<string>('lastSteamId')) || '';
+
+  // Restore last sort and filter
+  const lastSort = await getSetting<SortState>('lastSort');
+  if (lastSort) state.sort = lastSort;
+
+  const lastFilter = await getSetting<string | null>('lastFilter');
+  if (lastFilter !== undefined) state.filterCategory = lastFilter;
 
   if (lastSteamId) {
     handleFetchWishlist(lastSteamId);
@@ -367,11 +374,13 @@ function handleSort(field: SortField) {
       state.sort.direction = 'desc';
     }
   }
+  setSetting('lastSort', state.sort);
   renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings);
 }
 
 function handleFilter(category: string | null) {
   state.filterCategory = category;
+  setSetting('lastFilter', category);
   renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings);
 }
 

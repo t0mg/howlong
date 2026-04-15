@@ -499,6 +499,14 @@ img {
   min-width: 160px;
 }
 
+.filter-select.active {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
 .filter-select:hover {
   border-color: var(--accent);
   background: var(--bg-surface-hover);
@@ -972,6 +980,7 @@ img {
 
   .controls-container {
     padding: 0;
+    flex-direction: column;
   }
 
   .filter-controls {

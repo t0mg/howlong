@@ -315,7 +315,7 @@ function renderFilterControls(
 
   const sortedGenres = Array.from(genres).sort();
 
-  const select = el('select', { class: 'filter-select' });
+  const select = el('select', { class: `filter-select ${state.filterCategory ? 'active' : ''}` });
   select.appendChild(el('option', { value: '' }, 'All Categories'));
 
   sortedGenres.forEach(genre => {
