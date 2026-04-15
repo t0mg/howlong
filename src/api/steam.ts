@@ -7,8 +7,8 @@ import { PROXY_BASE } from './config';
 export async function fetchSteamWishlist(
   steamId: string
 ): Promise<SteamWishlistItem[]> {
-  const url = `${PROXY_BASE}/steam/wishlist/${encodeURIComponent(steamId)}`;
-  const res = await fetch(url);
+  const url = `${PROXY_BASE}/steam/wishlist/${encodeURIComponent(steamId)}?t=${Date.now()}`;
+  const res = await fetch(url, { cache: 'no-cache' });
 
   if (!res.ok) {
     if (res.status === 404 || res.status === 500) {
@@ -36,10 +36,10 @@ export async function fetchSteamPriceBatch(
 ): Promise<SteamAppDetailsResponse | null> {
   if (appIds.length === 0) return null;
   const ids = appIds.join(',');
-  const url = `${PROXY_BASE}/steam/prices-batch?ids=${ids}&cc=${cc}`;
+  const url = `${PROXY_BASE}/steam/prices-batch?ids=${ids}&cc=${cc}&t=${Date.now()}`;
   
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { cache: 'no-cache' });
     if (res.status === 200) return await res.json() as SteamAppDetailsResponse;
     if (res.status === 429 || res.status === 403) {
       console.warn(`[Steam] Batch price fetch rate limited (${res.status}).`);
@@ -59,10 +59,10 @@ export async function fetchSteamPriceBatch(
 export async function fetchSteamMetadata(
   appId: string
 ): Promise<SteamAppDetailsResponse | null> {
-  const url = `${PROXY_BASE}/steam/metadata/${appId}`;
+  const url = `${PROXY_BASE}/steam/metadata/${appId}?t=${Date.now()}`;
   
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { cache: 'no-cache' });
     if (res.status === 200) return await res.json() as SteamAppDetailsResponse;
     return null;
   } catch (err) {

@@ -26,7 +26,14 @@ async function handleWishlist(steamId: string): Promise<Response> {
   }
 
   const data = await res.json();
-  return jsonResponse(data);
+  return new Response(JSON.stringify(data), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      ...CORS_HEADERS,
+    },
+  });
 }
 
 async function handlePricesBatch(url: URL): Promise<Response> {

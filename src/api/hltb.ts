@@ -35,8 +35,8 @@ export async function searchHLTB(
 ): Promise<HLTBResult | null> {
   if (checkCancelled?.()) return null;
   try {
-    const url = `${PROXY_BASE}/hltb/search?q=${encodeURIComponent(gameName)}`;
-    const res = await fetch(url);
+    const url = `${PROXY_BASE}/hltb/search?q=${encodeURIComponent(gameName)}&t=${Date.now()}`;
+    const res = await fetch(url, { cache: 'no-cache' });
     
     if (!res.ok) {
       console.warn(`[HLTB] Search failed for "${gameName}": Status ${res.status}`);
