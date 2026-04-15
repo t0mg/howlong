@@ -29,8 +29,12 @@ async function init() {
   // Load settings from IDB
   state.regionId = (await getSetting<string>('regionId')) || 'us';
   const lastSteamId = (await getSetting<string>('lastSteamId')) || '';
-  
-  renderLanding(handleFetchWishlist, handleSettings, lastSteamId);
+
+  if (lastSteamId) {
+    handleFetchWishlist(lastSteamId);
+  } else {
+    renderLanding(handleFetchWishlist, handleSettings, lastSteamId);
+  }
 }
 
 // ── Handlers ─────────────────────────────────────────────────
@@ -68,7 +72,7 @@ async function handleFetchWishlist(steamId: string) {
     // 2) Fetch Prices in Batches (Very efficient, avoids rate limits)
     state.loadingMessage = 'Fetching game prices...';
     renderLoading(state);
-    
+
     const region = REGION_MAP[state.regionId] || REGION_MAP.us;
     const priceMap: Record<string, any> = {};
     const PRICE_BATCH_SIZE = 100;
@@ -92,7 +96,7 @@ async function handleFetchWishlist(steamId: string) {
 
     const fetchWithLimit = async (items: any[]) => {
       const activePromises: Promise<void>[] = [];
-      
+
       for (const item of items) {
         if (activePromises.length >= CONCURRENCY) {
           await Promise.race(activePromises);
@@ -102,10 +106,10 @@ async function handleFetchWishlist(steamId: string) {
 
         const promise = (async () => {
           const appIdStr = item.appid.toString();
-          
+
           // Try to get from local cache first
           const cached = await getCachedSteam(appIdStr);
-          
+
           if (cached) {
             const priceData = priceMap[appIdStr]?.success ? priceMap[appIdStr].data?.price_overview : null;
 
@@ -213,11 +217,11 @@ async function handleFetchWishlist(steamId: string) {
     state.loadingProgress = 0;
     state.loadingTotal = games.length;
     state.loadingMessage = 'Enriching with HowLongToBeat data...';
-    
+
     // Reset cancellation for HLTB phase - we always want to enrich whatever we found
     state.isCancelled = false;
-    state.onStop = undefined; 
-    
+    state.onStop = undefined;
+
     renderLoading(state);
 
     // 3) Enrich with HLTB data
@@ -279,7 +283,7 @@ async function handleFetchWishlist(steamId: string) {
     // 4) Done — show dashboard
     state.loading = false;
     state.onStop = undefined;
-    
+
     renderDashboard(state, handleSort, handleReset, handleSettings);
   } catch (err: unknown) {
     state.loading = false;
@@ -292,13 +296,14 @@ async function handleFetchWishlist(steamId: string) {
 async function handleSettings() {
   const { renderSettingsModal } = await import('./ui/render');
   const { clearCache } = await import('./cache');
-  
+
   renderSettingsModal(
     () => clearCache(),
     () => handleClearAppCache(),
     async (regionId) => {
       state.regionId = regionId;
       await setSetting('regionId', regionId);
+      window.location.reload();
     },
     state.regionId
   );

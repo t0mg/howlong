@@ -252,7 +252,7 @@ function renderHeader(
   const headerSteamId = el('span', { class: 'header-steam-id' }, `Steam: ${state.steamId}`);
   headerLeft.append(headerTitle, headerSteamId);
 
-  const resetBtn = el('button', { class: 'btn-ghost', id: 'reset-btn' }, '← New Lookup');
+  const resetBtn = el('button', { class: 'btn-ghost', id: 'reset-btn' }, '← Change Steam ID');
   resetBtn.addEventListener('click', onReset);
 
   const settingsBtn = el('button', { class: 'btn-ghost', id: 'settings-btn', title: 'Settings' });
@@ -350,7 +350,7 @@ export function renderSettingsModal(
   const regionSection = el('div', { class: 'settings-item' });
   const regionInfo = el('div', { class: 'settings-item-info' });
   const regionLabel = el('span', { class: 'settings-item-label' }, 'Steam Store Region');
-  const regionDesc = el('p', { class: 'settings-item-desc' }, 'Select region for accurate local prices. Requires new lookup.');
+  const regionDesc = el('p', { class: 'settings-item-desc' }, 'Select region for accurate local prices. Changing this will reload the app.');
   regionInfo.append(regionLabel, regionDesc);
 
   const select = el('select', { class: 'btn-ghost', style: 'padding: 0.5rem;' }) as HTMLSelectElement;
