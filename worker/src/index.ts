@@ -220,14 +220,26 @@ export default {
           if (!searchRes.ok) throw new Error(`HLTB Search failed: ${searchRes.status}`);
           const searchData = await searchRes.json() as any;
 
+          const formatHours = (seconds: number) => {
+            if (!seconds) return 0;
+            const hours = seconds / 3600;
+            if (hours < 2) {
+              return Math.round(hours * 4) / 4;
+            } else if (hours < 10) {
+              return Math.round(hours * 2) / 2;
+            } else {
+              return Math.round(hours);
+            }
+          };
+
           const results = (searchData.data || []).map((r: any) => ({
             id: r.game_id?.toString(),
             name: r.game_name,
             imageUrl: r.game_image ? `https://howlongtobeat.com/games/${r.game_image}` : null,
             // HLTB returns seconds, we want hours
-            gameplayMain: r.comp_main ? Math.round(r.comp_main / 3600) : 0,
-            gameplayMainExtra: r.comp_plus ? Math.round(r.comp_plus / 3600) : 0,
-            gameplayCompletionist: r.comp_100 ? Math.round(r.comp_100 / 3600) : 0,
+            gameplayMain: formatHours(r.comp_main),
+            gameplayMainExtra: formatHours(r.comp_plus),
+            gameplayCompletionist: formatHours(r.comp_100),
             similarity: 1,
           }));
 
