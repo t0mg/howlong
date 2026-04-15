@@ -1,10 +1,10 @@
 import { get, set, clear as idbClear, createStore, del } from 'idb-keyval';
 import type { HLTBResult, CachedSteamData } from './api/types';
 
-// Separate "tables" (stores) within the same database
-const hltbStore = createStore('howlong-db', 'hltb-cache');
-const steamStore = createStore('howlong-db', 'steam-cache');
-const settingsStore = createStore('howlong-db', 'settings');
+// Use separate databases for each purpose to avoid IndexedDB versioning issues with idb-keyval's simple API.
+const hltbStore = createStore('howlong-cache-hltb', 'keyval');
+const steamStore = createStore('howlong-cache-steam', 'keyval');
+const settingsStore = createStore('howlong-settings', 'keyval');
 
 export async function getCachedHLTB(gameName: string): Promise<HLTBResult | null | undefined> {
   const key = 'hltb_' + gameName.toLowerCase().trim();
