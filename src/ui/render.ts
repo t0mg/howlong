@@ -534,7 +534,7 @@ function createDurationBar(
 
   barContainer.appendChild(bar);
 
-  const hoursEl = el('span', { class: 'duration-hours' }, `${hours}h`);
+  const hoursEl = el('span', { class: 'duration-hours', 'data-value': hours.toString() }, formatHours(hours));
   row.append(labelEl, barContainer, hoursEl);
   return row;
 }
@@ -544,7 +544,22 @@ function createDurationBar(
 function formatHours(hours: number): string {
   if (hours === 0) return '—';
   if (hours >= 1000) return `${(hours / 1000).toFixed(1)}K hrs`;
-  return `${hours} hrs`;
+
+  let wholeHours = Math.floor(hours);
+  let minutes = Math.round((hours - wholeHours) * 60);
+
+  if (minutes === 60) {
+    wholeHours++;
+    minutes = 0;
+  }
+
+  if (wholeHours === 0) {
+    return `${minutes}m`;
+  } else if (minutes === 0) {
+    return `${wholeHours}h`;
+  } else {
+    return `${wholeHours}h${minutes}m`;
+  }
 }
 
 function formatCurrency(amount: number, currency = 'USD'): string {
