@@ -220,22 +220,25 @@ export function renderError(message: string, onRetry: () => void): void {
 
 export function renderDashboard(
   state: AppState,
-  onSort: (field: SortField) => void,
-  onReset: () => void,
-  onSettings: () => void
+  handlers: {
+    onSortChange: (field: SortField, dir?: 'asc' | 'desc') => void;
+    onFilterChange: (genre: string | null) => void;
+    handleReset: () => void;
+    handleSettings: () => void;
+  }
 ): void {
   const app = $('#app');
   app.innerHTML = '';
 
-  const sorted = sortGames(state.games, state.sort.field, state.sort.direction);
-  const stats = computeStats(sorted);
+  const sorted = sortGames(state.games, state.sort.field, state.sort.direction, state.filterGenre);
+  const stats = computeStats(state.games, state.filterGenre);
   const region = REGION_MAP[state.regionId] || REGION_MAP.us;
   const currency = region.currency;
 
   app.append(
-    renderHeader(state, onReset, onSettings),
+    renderHeader(state, handlers.handleReset, handlers.handleSettings),
     renderStatsBar(stats, currency),
-    renderSortControls(state, onSort),
+    renderSortControls(state, handlers.onSortChange, handlers.onFilterChange),
     renderMatchInfo(stats),
     renderGameGrid(sorted, currency)
   );
@@ -283,41 +286,75 @@ function renderStatsBar(
 
 function renderSortControls(
   state: AppState,
-  onSort: (field: SortField) => void
-): HTMLElement {
-  const controls = el('div', { class: 'sort-controls' });
-  const sortLabel = el('span', { class: 'sort-label' }, 'Sort by:');
-  controls.appendChild(sortLabel);
+  onSort: (field: SortField, dir?: 'asc' | 'desc') => void,
+  onFilter: (genre: string | null) => void
+) {
+  const allGenres = new Set<string>();
+  state.games.forEach(g => g.genres?.forEach(genre => allGenres.add(genre)));
+  const sortedGenres = Array.from(allGenres).sort();
 
-  const sortOptions: { value: SortField; label: string }[] = [
-    { value: 'priority', label: 'Priority' },
-    { value: 'name', label: 'Name' },
-    { value: 'hltbMain', label: 'Duration (Main)' },
-    { value: 'hltbMainExtra', label: 'Duration (Main+)' },
-    { value: 'hltbCompletionist', label: 'Duration (100%)' },
-    { value: 'priceFinal', label: 'Price' },
-    { value: 'discountPercent', label: 'Discount' },
+  const container = el('div', { className: 'sort-controls', style: 'display:flex; gap: 1rem; align-items:center; flex-wrap: wrap;' });
+
+  // Genre filter
+  const filterWrapper = el('div', { style: 'display:flex; align-items:center; gap:0.5rem;' });
+  filterWrapper.appendChild(el('span', { className: 'sort-label' }, 'Genre:'));
+
+  const genreSelect = el('select', { id: 'genre-select', className: 'sort-btn' });
+  genreSelect.addEventListener('change', (e: any) => {
+    const val = e.target.value;
+    onFilter(val === 'all' ? null : val);
+  });
+
+  const allOpt = el('option', { value: 'all' }, 'All Genres') as HTMLOptionElement;
+  if (state.filterGenre === null) allOpt.selected = true;
+  genreSelect.appendChild(allOpt);
+
+  sortedGenres.forEach(g => {
+    const opt = el('option', { value: g }, g) as HTMLOptionElement;
+    if (state.filterGenre === g) opt.selected = true;
+    genreSelect.appendChild(opt);
+  });
+
+  filterWrapper.appendChild(genreSelect);
+  container.appendChild(filterWrapper);
+
+  // Sort control
+  const sortWrapper = el('div', { style: 'display:flex; align-items:center; gap:0.5rem;' });
+  sortWrapper.appendChild(el('span', { className: 'sort-label' }, 'Sort by:'));
+
+  const sortSelect = el('select', { id: 'sort-select', className: 'sort-btn' });
+  sortSelect.addEventListener('change', (e: any) => {
+    const val = e.target.value;
+    const [field, direction] = val.split('-');
+    onSort(field as SortField, direction as 'asc'|'desc');
+  });
+
+  const options = [
+    { value: 'priority-desc', label: 'Priority', match: state.sort.field === 'priority' },
+    { value: 'dateAdded-desc', label: 'Date Added (Newest)', match: state.sort.field === 'dateAdded' && state.sort.direction === 'desc' },
+    { value: 'dateAdded-asc', label: 'Date Added (Oldest)', match: state.sort.field === 'dateAdded' && state.sort.direction === 'asc' },
+    { value: 'name-asc', label: 'Name', match: state.sort.field === 'name' },
+    { value: 'hltbMain-desc', label: 'Duration (Main) ↓', match: state.sort.field === 'hltbMain' && state.sort.direction === 'desc' },
+    { value: 'hltbMain-asc', label: 'Duration (Main) ↑', match: state.sort.field === 'hltbMain' && state.sort.direction === 'asc' },
+    { value: 'hltbMainExtra-desc', label: 'Duration (Main+) ↓', match: state.sort.field === 'hltbMainExtra' && state.sort.direction === 'desc' },
+    { value: 'hltbMainExtra-asc', label: 'Duration (Main+) ↑', match: state.sort.field === 'hltbMainExtra' && state.sort.direction === 'asc' },
+    { value: 'hltbCompletionist-desc', label: 'Duration (100%) ↓', match: state.sort.field === 'hltbCompletionist' && state.sort.direction === 'desc' },
+    { value: 'hltbCompletionist-asc', label: 'Duration (100%) ↑', match: state.sort.field === 'hltbCompletionist' && state.sort.direction === 'asc' },
+    { value: 'priceFinal-desc', label: 'Price ↓', match: state.sort.field === 'priceFinal' && state.sort.direction === 'desc' },
+    { value: 'priceFinal-asc', label: 'Price ↑', match: state.sort.field === 'priceFinal' && state.sort.direction === 'asc' },
+    { value: 'discountPercent-desc', label: 'Discount', match: state.sort.field === 'discountPercent' }
   ];
 
-  for (const opt of sortOptions) {
-    const isActive = state.sort.field === opt.value;
-    const btn = el(
-      'button',
-      {
-        class: `sort-btn ${isActive ? 'active' : ''}`,
-        'data-sort': opt.value,
-      },
-      opt.label
-    );
-    if (isActive) {
-      btn.innerHTML += state.sort.direction === 'asc'
-        ? ' <span class="sort-arrow">↑</span>'
-        : ' <span class="sort-arrow">↓</span>';
-    }
-    btn.addEventListener('click', () => onSort(opt.value));
-    controls.appendChild(btn);
-  }
-  return controls;
+  options.forEach(o => {
+    const opt = el('option', { value: o.value }, o.label) as HTMLOptionElement;
+    if (o.match) opt.selected = true;
+    sortSelect.appendChild(opt);
+  });
+
+  sortWrapper.appendChild(sortSelect);
+  container.appendChild(sortWrapper);
+
+  return container;
 }
 
 function renderMatchInfo(stats: ReturnType<typeof computeStats>): HTMLElement {
@@ -442,6 +479,15 @@ function createGameCard(game: GameEntry, currency: string): HTMLElement {
 
   const name = el('h3', { class: 'game-name' }, game.name);
   info.appendChild(name);
+
+  if (game.dateAdded) {
+    const dateAdded = el('div', { class: 'game-date-added', style: 'font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem;' }, `Added: ${new Date(game.dateAdded * 1000).toLocaleDateString()}`);
+    info.appendChild(dateAdded);
+  }
+  if (game.genres && game.genres.length > 0) {
+    const genreText = el('div', { class: 'game-genre', style: 'font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;' }, game.genres.slice(0, 3).join(', '));
+    info.appendChild(genreText);
+  }
 
   // Price
   const priceRow = el('div', { class: 'price-row' });

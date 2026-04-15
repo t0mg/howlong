@@ -49,6 +49,8 @@ export interface HLTBResult {
 // ── App Domain Types ─────────────────────────────────────────
 
 export interface GameEntry {
+  dateAdded?: number;
+  genres?: string[];
   appId: string;
   name: string;
   capsuleUrl: string;
@@ -78,6 +80,7 @@ export interface GameEntry {
 }
 
 export interface CachedSteamData {
+  genres?: string[];
   name: string;
   capsuleUrl: string;
   priceFinal: number | null;
@@ -97,7 +100,8 @@ export type SortField =
   | 'hltbCompletionist'
   | 'priceFinal'
   | 'discountPercent'
-  | 'priority';
+  | 'priority'
+  | 'dateAdded';
 
 export type SortDirection = 'asc' | 'desc';
 
@@ -107,6 +111,7 @@ export interface SortState {
 }
 
 export interface AppState {
+  filterGenre: string | null;
   steamId: string;
   games: GameEntry[];
   sort: SortState;

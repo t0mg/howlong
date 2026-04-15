@@ -11,6 +11,7 @@ import { renderLanding, renderLoading, renderError, renderDashboard } from './ui
 const state: AppState = {
   steamId: '',
   games: [],
+  filterGenre: null,
   sort: { field: 'hltbMain', direction: 'asc' },
   loading: false,
   loadingMessage: '',
@@ -280,7 +281,7 @@ async function handleFetchWishlist(steamId: string) {
     state.loading = false;
     state.onStop = undefined;
     
-    renderDashboard(state, handleSort, handleReset, handleSettings);
+    updateUI();
   } catch (err: unknown) {
     state.loading = false;
     const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
@@ -323,14 +324,17 @@ async function handleClearAppCache() {
   window.location.reload();
 }
 
-function handleSort(field: SortField) {
-  if (state.sort.field === field) {
+function handleSort(field: SortField, dir?: 'asc' | 'desc') {
+  if (dir) {
+    state.sort.direction = dir;
+    state.sort.field = field;
+  } else if (state.sort.field === field) {
     state.sort.direction = state.sort.direction === 'asc' ? 'desc' : 'asc';
   } else {
     state.sort.field = field;
     state.sort.direction = field === 'name' ? 'asc' : 'desc';
   }
-  renderDashboard(state, handleSort, handleReset, handleSettings);
+  updateUI();
 }
 
 function handleReset() {
@@ -360,3 +364,18 @@ if ('serviceWorker' in navigator) {
 // ── Start ────────────────────────────────────────────────────
 
 init();
+
+
+function updateUI() {
+  renderDashboard(state, {
+    onSortChange: handleSort,
+    onFilterChange: handleFilter,
+    handleReset,
+    handleSettings
+  });
+}
+
+function handleFilter(genre: string | null) {
+  state.filterGenre = genre;
+  updateUI();
+}

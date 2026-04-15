@@ -7,9 +7,11 @@ import type { GameEntry, SortField, SortDirection } from '../api/types';
 export function sortGames(
   games: GameEntry[],
   field: SortField,
-  direction: SortDirection
+  direction: SortDirection,
+  filterGenre: string | null = null
 ): GameEntry[] {
-  const sorted = [...games].sort((a, b) => {
+  let filtered = filterGenre ? games.filter(g => g.genres?.includes(filterGenre)) : games;
+  const sorted = [...filtered].sort((a, b) => {
     const aVal = getFieldValue(a, field);
     const bVal = getFieldValue(b, field);
 
@@ -54,8 +56,9 @@ function getFieldValue(game: GameEntry, field: SortField): string | number | nul
 /**
  * Compute aggregate statistics for the game list.
  */
-export function computeStats(games: GameEntry[]) {
-  let totalGames = games.length;
+export function computeStats(games: GameEntry[], filterGenre: string | null = null) {
+  const filtered = filterGenre ? games.filter(g => g.genres?.includes(filterGenre)) : games;
+  let totalGames = filtered.length;
   let gamesWithHltb = 0;
   let totalMainHours = 0;
   let totalMainExtraHours = 0;
