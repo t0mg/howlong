@@ -16,6 +16,219 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
+async function handleWishlist(steamId: string): Promise<Response> {
+  const apiUrl = `https://api.steampowered.com/IWishlistService/GetWishlist/v1?steamid=${steamId}`;
+  console.log(`[Worker] Calling Official API: ${apiUrl}`);
+
+  const res = await fetch(apiUrl);
+  if (!res.ok) {
+    return jsonResponse({ error: `Steam API error: ${res.status}` }, res.status);
+  }
+
+  const data = await res.json();
+  return jsonResponse(data);
+}
+
+async function handlePricesBatch(url: URL): Promise<Response> {
+  const ids = url.searchParams.get('ids') || '';
+  const cc = url.searchParams.get('cc') || 'us';
+  if (!ids) return jsonResponse({ error: 'Missing ids' }, 400);
+
+  const steamUrl = `https://store.steampowered.com/api/appdetails?appids=${ids}&filters=price_overview&cc=${cc}`;
+
+  console.log(`[Worker] Fetching PriceBatch: ${ids.split(',').length} items (CC: ${cc})`);
+
+  const res = await fetch(steamUrl, {
+    cf: {
+      cacheEverything: true,
+      cacheTtl: 86400, // 24h for prices
+      cacheKey: `steam-prices-${ids}-${cc}`,
+    },
+    headers: { 'User-Agent': 'Mozilla/5.0' },
+  } as RequestInit);
+
+  if (res.status === 429 || res.status === 403) {
+    return jsonResponse({ error: 'Steam rate limited', status: res.status }, res.status);
+  }
+
+  const data = await res.text();
+  return new Response(data, {
+    status: res.status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'public, max-age=3600', // Browser cache 1h
+      ...CORS_HEADERS,
+    },
+  });
+}
+
+async function handleMetadata(appId: string): Promise<Response> {
+  const steamUrl = `https://store.steampowered.com/api/appdetails?appids=${appId}&filters=basic`;
+
+  console.log(`[Worker] Fetching Metadata: ${appId}`);
+
+  // Try API first
+  let res = await fetch(steamUrl, {
+    cf: {
+      cacheEverything: true,
+      cacheTtl: 604800, // 7 days for metadata
+      cacheKey: `steam-meta-${appId}`,
+    },
+    headers: { 'User-Agent': 'Mozilla/5.0' },
+  } as RequestInit);
+
+  // 429/403 or success: false? Try scraping
+  let data: any = null;
+  if (res.ok) {
+    const raw = await res.json() as any;
+    if (raw[appId]?.success) {
+      data = raw;
+    }
+  }
+
+  // Fallback: Scrape HTML for title
+  if (!data) {
+    console.warn(`[Worker] AppDetails failed for ${appId}. Falling back to HTML scraping...`);
+    const storeUrl = `https://store.steampowered.com/app/${appId}`;
+    const htmlRes = await fetch(storeUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+
+    if (htmlRes.ok) {
+      const html = await htmlRes.text();
+      const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+      if (titleMatch) {
+        let title = titleMatch[1].trim();
+        // Clean title: "Save 50% on Game Name on Steam" -> "Game Name"
+        title = title.replace(/ on Steam$/i, '').replace(/^Save \d+% on /i, '');
+
+        data = {
+          [appId]: {
+            success: true,
+            data: {
+              name: title,
+              header_image: `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg`,
+              type: 'game'
+            }
+          }
+        };
+      }
+    }
+  }
+
+  if (!data) {
+    return jsonResponse({ error: 'Failed to fetch metadata' }, res.status || 500);
+  }
+
+  return new Response(JSON.stringify(data), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'public, max-age=86400', // Browser cache 24h
+      ...CORS_HEADERS,
+    },
+  });
+}
+
+async function handleHltbSearch(url: URL): Promise<Response> {
+  const query = url.searchParams.get('q');
+  if (!query) {
+    return jsonResponse({ error: 'Missing ?q= parameter' }, 400);
+  }
+
+  try {
+    // 1. Handshake: init session
+    console.log(`[Worker] HLTB Init for: ${query}`);
+    const timestamp = Date.now();
+    const initRes = await fetch(`https://howlongtobeat.com/api/find/init?t=${timestamp}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Referer': 'https://howlongtobeat.com/',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    });
+
+    if (!initRes.ok) throw new Error(`HLTB Init failed: ${initRes.status}`);
+    const { token, hpKey, hpVal } = await initRes.json() as any;
+
+    // 1.5 Safety delay to mimic human behavior
+    await new Promise(resolve => setTimeout(resolve, 250));
+
+    // 2. Handshake: Search with keys
+    console.log(`[Worker] HLTB Search for: ${query} (key: ${hpKey})`);
+    const searchRes = await fetch('https://howlongtobeat.com/api/find', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-auth-token': token,
+        'x-hp-key': hpKey,
+        'x-hp-val': hpVal,
+        'Origin': 'https://howlongtobeat.com',
+        'Referer': 'https://howlongtobeat.com/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': '*/*',
+      },
+      body: JSON.stringify({
+        searchType: "games",
+        searchTerms: query.toLowerCase().split(/\s+/), // Cleaned & lowercased
+        searchPage: 1,
+        size: 20,
+        searchOptions: {
+          games: {
+            userId: 0,
+            platform: "",
+            sortCategory: "popular",
+            rangeCategory: "main",
+            rangeTime: { min: null, max: null },
+            gameplay: { perspective: "", flow: "", genre: "", difficulty: "" },
+            rangeYear: { min: "", max: "" },
+            modifier: ""
+          },
+          users: { sortCategory: "postcount" },
+          lists: { sortCategory: "follows" },
+          filter: "",
+          sort: 0,
+          randomizer: 0
+        },
+        useCache: true,
+        [hpKey]: hpVal, // Dynamic security property
+      }),
+    });
+
+    if (!searchRes.ok) throw new Error(`HLTB Search failed: ${searchRes.status}`);
+    const searchData = await searchRes.json() as any;
+
+const formatHours = (seconds: number) => {
+      if (!seconds) return 0;
+      const hours = seconds / 3600;
+      if (hours < 2) {
+        return Math.round(hours * 4) / 4;
+      } else if (hours < 10) {
+        return Math.round(hours * 2) / 2;
+      } else {
+        return Math.round(hours);
+      }
+    };
+
+    const results = (searchData.data || []).map((r: any) => ({
+      id: r.game_id?.toString(),
+      name: r.game_name,
+      imageUrl: r.game_image ? `https://howlongtobeat.com/games/${r.game_image}` : null,
+      // HLTB returns seconds, we want hours
+      gameplayMain: formatHours(r.comp_main),
+      gameplayMainExtra: formatHours(r.comp_plus),
+      gameplayCompletionist: formatHours(r.comp_100),
+      similarity: 1,
+    }));
+
+    return jsonResponse(results);
+  } catch (err: unknown) {
+    console.error('[Worker] HLTB Error:', err);
+    return jsonResponse({ error: 'HLTB lookup failed' }, 500);
+  }
+}
+
 export default {
   async fetch(request: Request): Promise<Response> {
     // Handle CORS preflight
@@ -30,224 +243,24 @@ export default {
       // GET /steam/wishlist/:steamId
       const wishlistMatch = path.match(/^\/steam\/wishlist\/([^\/\?]+)/);
       if (wishlistMatch) {
-        const steamId = wishlistMatch[1].trim();
-        const apiUrl = `https://api.steampowered.com/IWishlistService/GetWishlist/v1?steamid=${steamId}`;
-        console.log(`[Worker] Calling Official API: ${apiUrl}`);
-
-        const res = await fetch(apiUrl);
-        if (!res.ok) {
-          return jsonResponse({ error: `Steam API error: ${res.status}` }, res.status);
-        }
-
-        const data = await res.json();
-        return jsonResponse(data);
+        return await handleWishlist(wishlistMatch[1].trim());
       }
 
       // GET /steam/prices-batch?ids=1,2,3&cc=us
       if (path === '/steam/prices-batch') {
-        const ids = url.searchParams.get('ids') || '';
-        const cc = url.searchParams.get('cc') || 'us';
-        if (!ids) return jsonResponse({ error: 'Missing ids' }, 400);
-
-        const steamUrl = `https://store.steampowered.com/api/appdetails?appids=${ids}&filters=price_overview&cc=${cc}`;
-        
-        console.log(`[Worker] Fetching PriceBatch: ${ids.split(',').length} items (CC: ${cc})`);
-
-        const res = await fetch(steamUrl, {
-          cf: {
-            cacheEverything: true,
-            cacheTtl: 86400, // 24h for prices
-            cacheKey: `steam-prices-${ids}-${cc}`,
-          },
-          headers: { 'User-Agent': 'Mozilla/5.0' },
-        });
-
-        if (res.status === 429 || res.status === 403) {
-          return jsonResponse({ error: 'Steam rate limited', status: res.status }, res.status);
-        }
-
-        const data = await res.text();
-        return new Response(data, {
-          status: res.status,
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'public, max-age=3600', // Browser cache 1h
-            ...CORS_HEADERS,
-          },
-        });
+        return await handlePricesBatch(url);
       }
 
       // GET /steam/metadata/:appId
       const metaMatch = path.match(/^\/steam\/metadata\/(\d+)$/);
       if (metaMatch) {
-        const appId = metaMatch[1];
-        const steamUrl = `https://store.steampowered.com/api/appdetails?appids=${appId}&filters=basic`;
-        
-        console.log(`[Worker] Fetching Metadata: ${appId}`);
-
-        // Try API first
-        let res = await fetch(steamUrl, {
-          cf: {
-            cacheEverything: true,
-            cacheTtl: 604800, // 7 days for metadata
-            cacheKey: `steam-meta-${appId}`,
-          },
-          headers: { 'User-Agent': 'Mozilla/5.0' },
-        });
-
-        // 429/403 or success: false? Try scraping
-        let data: any = null;
-        if (res.ok) {
-          const raw = await res.json() as any;
-          if (raw[appId]?.success) {
-            data = raw;
-          }
-        }
-
-        // Fallback: Scrape HTML for title
-        if (!data) {
-          console.warn(`[Worker] AppDetails failed for ${appId}. Falling back to HTML scraping...`);
-          const storeUrl = `https://store.steampowered.com/app/${appId}`;
-          const htmlRes = await fetch(storeUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0' }
-          });
-
-          if (htmlRes.ok) {
-            const html = await htmlRes.text();
-            const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
-            if (titleMatch) {
-              let title = titleMatch[1].trim();
-              // Clean title: "Save 50% on Game Name on Steam" -> "Game Name"
-              title = title.replace(/ on Steam$/i, '').replace(/^Save \d+% on /i, '');
-              
-              data = {
-                [appId]: {
-                  success: true,
-                  data: {
-                    name: title,
-                    header_image: `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg`,
-                    type: 'game'
-                  }
-                }
-              };
-            }
-          }
-        }
-
-        if (!data) {
-          return jsonResponse({ error: 'Failed to fetch metadata' }, res.status || 500);
-        }
-
-        return new Response(JSON.stringify(data), {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'public, max-age=86400', // Browser cache 24h
-            ...CORS_HEADERS,
-          },
-        });
+        return await handleMetadata(metaMatch[1]);
       }
 
       // ── HLTB Search ───────────────────────────────────────
       // GET /hltb/search?q=Game+Name
       if (path === '/hltb/search') {
-        const query = url.searchParams.get('q');
-        if (!query) {
-          return jsonResponse({ error: 'Missing ?q= parameter' }, 400);
-        }
-
-
-        try {
-          // 1. Handshake: init session
-          console.log(`[Worker] HLTB Init for: ${query}`);
-          const timestamp = Date.now();
-          const initRes = await fetch(`https://howlongtobeat.com/api/find/init?t=${timestamp}`, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-              'Referer': 'https://howlongtobeat.com/',
-              'Accept': 'application/json, text/plain, */*',
-              'Accept-Language': 'en-US,en;q=0.9',
-            },
-          });
-
-          if (!initRes.ok) throw new Error(`HLTB Init failed: ${initRes.status}`);
-          const { token, hpKey, hpVal } = await initRes.json() as any;
-
-          // 1.5 Safety delay to mimic human behavior
-          await new Promise(resolve => setTimeout(resolve, 250));
-
-          // 2. Handshake: Search with keys
-          console.log(`[Worker] HLTB Search for: ${query} (key: ${hpKey})`);
-          const searchRes = await fetch('https://howlongtobeat.com/api/find', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-auth-token': token,
-              'x-hp-key': hpKey,
-              'x-hp-val': hpVal,
-              'Origin': 'https://howlongtobeat.com',
-              'Referer': 'https://howlongtobeat.com/',
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-              'Accept': '*/*',
-            },
-            body: JSON.stringify({
-              searchType: "games",
-              searchTerms: query.toLowerCase().split(/\s+/), // Cleaned & lowercased
-              searchPage: 1,
-              size: 20,
-              searchOptions: {
-                games: {
-                  userId: 0,
-                  platform: "",
-                  sortCategory: "popular",
-                  rangeCategory: "main",
-                  rangeTime: { min: null, max: null },
-                  gameplay: { perspective: "", flow: "", genre: "", difficulty: "" },
-                  rangeYear: { min: "", max: "" },
-                  modifier: ""
-                },
-                users: { sortCategory: "postcount" },
-                lists: { sortCategory: "follows" },
-                filter: "",
-                sort: 0,
-                randomizer: 0
-              },
-              useCache: true,
-              [hpKey]: hpVal, // Dynamic security property
-            }),
-          });
-
-          if (!searchRes.ok) throw new Error(`HLTB Search failed: ${searchRes.status}`);
-          const searchData = await searchRes.json() as any;
-
-          const formatHours = (seconds: number) => {
-            if (!seconds) return 0;
-            const hours = seconds / 3600;
-            if (hours < 2) {
-              return Math.round(hours * 4) / 4;
-            } else if (hours < 10) {
-              return Math.round(hours * 2) / 2;
-            } else {
-              return Math.round(hours);
-            }
-          };
-
-          const results = (searchData.data || []).map((r: any) => ({
-            id: r.game_id?.toString(),
-            name: r.game_name,
-            imageUrl: r.game_image ? `https://howlongtobeat.com/games/${r.game_image}` : null,
-            // HLTB returns seconds, we want hours
-            gameplayMain: formatHours(r.comp_main),
-            gameplayMainExtra: formatHours(r.comp_plus),
-            gameplayCompletionist: formatHours(r.comp_100),
-            similarity: 1,
-          }));
-
-          return jsonResponse(results);
-        } catch (err: unknown) {
-          console.error('[Worker] HLTB Error:', err);
-          return jsonResponse({ error: 'HLTB lookup failed' }, 500);
-        }
+        return await handleHltbSearch(url);
       }
 
       // ── Health Check ──────────────────────────────────────
