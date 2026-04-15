@@ -448,6 +448,15 @@ function createGameCard(game: GameEntry, currency: string): HTMLElement {
   const dateEl = el('span', { class: 'game-date' }, `Added ${dateStr}`);
   info.appendChild(dateEl);
 
+  // Genres
+  if (game.genres && game.genres.length > 0) {
+    const chips = el('div', { class: 'genre-chips' });
+    game.genres.slice(0, 5).forEach(tag => {
+      chips.appendChild(el('span', { class: 'genre-chip' }, tag));
+    });
+    info.appendChild(chips);
+  }
+
   // Price
   const priceRow = el('div', { class: 'price-row' });
   if (game.isFree) {

@@ -21,6 +21,7 @@ export interface SteamAppDetailsResponse {
         date: string;
       };
       type: string;
+      genres?: { id: string; description: string }[];
     };
   };
 }
@@ -55,7 +56,7 @@ export interface GameEntry {
   releaseDate: string;
   reviewDesc: string;
   reviewPercent: number;
-  tags: string[];
+  genres: string[];
   isFree: boolean;
   priority: number;
 
@@ -84,6 +85,7 @@ export interface CachedSteamData {
   priceFinal: number | null;
   priceInitial: number | null;
   discountPercent: number;
+  genres: string[];
 }
 
 export interface SteamCacheEntry {

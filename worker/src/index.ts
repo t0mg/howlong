@@ -63,7 +63,7 @@ async function handlePricesBatch(url: URL): Promise<Response> {
 }
 
 async function handleMetadata(appId: string): Promise<Response> {
-  const steamUrl = `https://store.steampowered.com/api/appdetails?appids=${appId}&filters=basic`;
+  const steamUrl = `https://store.steampowered.com/api/appdetails?appids=${appId}&filters=basic,genres`;
 
   console.log(`[Worker] Fetching Metadata: ${appId}`);
 
@@ -72,7 +72,7 @@ async function handleMetadata(appId: string): Promise<Response> {
     cf: {
       cacheEverything: true,
       cacheTtl: 604800, // 7 days for metadata
-      cacheKey: `steam-meta-${appId}`,
+      cacheKey: `steam-meta-v2-${appId}`,
     },
     headers: { 'User-Agent': 'Mozilla/5.0' },
   } as RequestInit);
@@ -153,7 +153,7 @@ async function handleHltbSearch(url: URL): Promise<Response> {
     const { token, hpKey, hpVal } = await initRes.json() as any;
 
     // 1.5 Safety delay to mimic human behavior
-    await new Promise(resolve => setTimeout(resolve, 250));
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     // 2. Handshake: Search with keys
     console.log(`[Worker] HLTB Search for: ${query} (key: ${hpKey})`);

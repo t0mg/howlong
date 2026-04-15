@@ -121,7 +121,7 @@ async function handleFetchWishlist(steamId: string) {
               releaseDate: '',
               reviewDesc: '',
               reviewPercent: 0,
-              tags: [],
+              genres: cached.genres || [],
               isFree: priceData ? false : (cached.priceFinal === null && cached.priceInitial === null),
               priority: item.priority || 999,
               priceCurrency: priceData?.currency || null,
@@ -146,6 +146,7 @@ async function handleFetchWishlist(steamId: string) {
                 priceInitial: priceData.initial / 100,
                 priceFinal: priceData.final / 100,
                 discountPercent: priceData.discount_percent,
+                genres: cached.genres || [],
               });
             }
           } else {
@@ -164,7 +165,7 @@ async function handleFetchWishlist(steamId: string) {
                 releaseDate: '',
                 reviewDesc: '',
                 reviewPercent: 0,
-                tags: [],
+                genres: data.genres?.map(g => g.description) || [],
                 isFree: data.type === 'free' || (!priceData && data.type !== 'dlc'),
                 priority: item.priority || 999,
                 priceCurrency: priceData?.currency || null,
@@ -187,6 +188,7 @@ async function handleFetchWishlist(steamId: string) {
                 priceInitial: game.priceInitial,
                 priceFinal: game.priceFinal,
                 discountPercent: game.discountPercent,
+                genres: game.genres,
               });
 
               games.push(game);
