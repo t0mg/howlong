@@ -114,6 +114,7 @@ export interface AppState {
   steamId: string;
   games: GameEntry[];
   sort: SortState;
+  filterCategory: string | null;
   loading: boolean;
   loadingMessage: string;
   loadingProgress: number;

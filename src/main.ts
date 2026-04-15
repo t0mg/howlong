@@ -12,7 +12,9 @@ const state: AppState = {
   steamId: '',
   games: [],
   sort: { field: 'hltbMain', direction: 'asc' },
+  filterCategory: null,
   loading: false,
+
   loadingMessage: '',
   loadingProgress: 0,
   loadingTotal: 0,
@@ -288,7 +290,8 @@ async function handleFetchWishlist(steamId: string) {
     state.loading = false;
     state.onStop = undefined;
 
-    renderDashboard(state, handleSort, handleReset, handleSettings);
+    renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings);
+
   } catch (err: unknown) {
     state.loading = false;
     const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
@@ -364,8 +367,14 @@ function handleSort(field: SortField) {
       state.sort.direction = 'desc';
     }
   }
-  renderDashboard(state, handleSort, handleReset, handleSettings);
+  renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings);
 }
+
+function handleFilter(category: string | null) {
+  state.filterCategory = category;
+  renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings);
+}
+
 
 function handleReset() {
   state.steamId = '';

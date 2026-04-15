@@ -467,17 +467,57 @@ img {
   font-weight: 500;
 }
 
-/* ── Sort Controls ─────────────────────────────────────────── */
+/* ── Filter & Sort Controls ────────────────────────────────── */
+
+.controls-container {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  border-bottom: 1px solid var(--bg-glass-border);
+  background: var(--bg-surface);
+  animation: fadeIn 500ms ease-out 100ms both;
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.filter-select {
+  background: var(--bg-glass);
+  border: 1px solid var(--bg-glass-border);
+  color: var(--text-primary);
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.85rem;
+  outline: none;
+  cursor: pointer;
+  transition: all var(--transition);
+  min-width: 160px;
+}
+
+.filter-select:hover {
+  border-color: var(--accent);
+  background: var(--bg-surface-hover);
+}
+
+.filter-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
 
 .sort-controls {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 2rem;
+  padding: 0.5rem 1rem;
   overflow-x: auto;
-  border-bottom: 1px solid var(--bg-glass-border);
-  animation: fadeIn 500ms ease-out 100ms both;
+  scrollbar-width: thin;
 }
+
 
 .sort-label {
   font-size: 0.8rem;
@@ -930,9 +970,24 @@ img {
     font-size: 1.1rem;
   }
 
-  .sort-controls {
-    padding: 0.75rem 1rem;
+  .controls-container {
+    padding: 0;
   }
+
+  .filter-controls {
+    padding: 1rem 1rem 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .filter-select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .sort-controls {
+    padding: 0.5rem 1rem 1rem;
+  }
+
 
   .game-grid {
     padding: 1rem;

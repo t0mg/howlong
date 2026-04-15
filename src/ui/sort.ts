@@ -1,5 +1,6 @@
 import type { GameEntry, SortField, SortDirection } from '../api/types';
 
+
 /**
  * Sort an array of games by a given field and direction.
  * Null values are always pushed to the end.
@@ -29,6 +30,15 @@ export function sortGames(
 
   return sorted;
 }
+
+/**
+ * Filter games by category (genre).
+ */
+export function filterGames(games: GameEntry[], category: string | null): GameEntry[] {
+  if (!category) return games;
+  return games.filter(g => g.genres && g.genres.includes(category));
+}
+
 
 function getFieldValue(game: GameEntry, field: SortField): string | number | null {
   switch (field) {

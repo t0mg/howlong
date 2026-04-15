@@ -1,6 +1,7 @@
 import type { AppState, GameEntry, SortField } from '../api/types';
 import { REGION_MAP } from '../api/types';
-import { sortGames, computeStats } from './sort';
+import { sortGames, filterGames, computeStats } from './sort';
+
 
 const SETTINGS_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -221,13 +222,15 @@ export function renderError(message: string, onRetry: () => void): void {
 export function renderDashboard(
   state: AppState,
   onSort: (field: SortField) => void,
+  onFilter: (category: string | null) => void,
   onReset: () => void,
   onSettings: () => void
 ): void {
   const app = $('#app');
   app.innerHTML = '';
 
-  const sorted = sortGames(state.games, state.sort.field, state.sort.direction);
+  const filtered = filterGames(state.games, state.filterCategory);
+  const sorted = sortGames(filtered, state.sort.field, state.sort.direction);
   const stats = computeStats(sorted);
   const region = REGION_MAP[state.regionId] || REGION_MAP.us;
   const currency = region.currency;
@@ -235,11 +238,12 @@ export function renderDashboard(
   app.append(
     renderHeader(state, onReset, onSettings),
     renderStatsBar(stats, currency),
-    renderSortControls(state, onSort),
+    renderFilterAndSort(state, onSort, onFilter),
     renderMatchInfo(stats),
     renderGameGrid(sorted, currency)
   );
 }
+
 
 function renderHeader(
   state: AppState,
@@ -281,10 +285,60 @@ function renderStatsBar(
   return statsBar;
 }
 
+function renderFilterAndSort(
+  state: AppState,
+  onSort: (field: SortField) => void,
+  onFilter: (category: string | null) => void
+): HTMLElement {
+  const container = el('div', { class: 'controls-container' });
+  container.append(
+    renderFilterControls(state, onFilter),
+    renderSortControls(state, onSort)
+  );
+  return container;
+}
+
+function renderFilterControls(
+  state: AppState,
+  onFilter: (category: string | null) => void
+): HTMLElement {
+  const controls = el('div', { class: 'filter-controls' });
+  const filterLabel = el('span', { class: 'sort-label' }, 'Filter:');
+  controls.appendChild(filterLabel);
+
+  const genres = new Set<string>();
+  state.games.forEach(g => {
+    if (g.genres) {
+      g.genres.forEach(genre => genres.add(genre));
+    }
+  });
+
+  const sortedGenres = Array.from(genres).sort();
+
+  const select = el('select', { class: 'filter-select' });
+  select.appendChild(el('option', { value: '' }, 'All Categories'));
+
+  sortedGenres.forEach(genre => {
+    const opt = el('option', { value: genre }, genre);
+    if (state.filterCategory === genre) {
+      opt.setAttribute('selected', '');
+    }
+    select.appendChild(opt);
+  });
+
+  select.addEventListener('change', () => {
+    onFilter(select.value || null);
+  });
+
+  controls.appendChild(select);
+  return controls;
+}
+
 function renderSortControls(
   state: AppState,
   onSort: (field: SortField) => void
 ): HTMLElement {
+
   const controls = el('div', { class: 'sort-controls' });
   const sortLabel = el('span', { class: 'sort-label' }, 'Sort by:');
   controls.appendChild(sortLabel);
