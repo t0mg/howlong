@@ -2,7 +2,7 @@ import './style.css';
 import type { AppState, GameEntry, SortField } from './api/types';
 import { REGION_MAP } from './api/types';
 import { fetchSteamWishlist, fetchSteamPriceBatch, fetchSteamMetadata } from './api/steam';
-import { searchHLTB } from './api/hltb';
+import { searchHLTB, formatDurationHours } from './api/hltb';
 import { getCachedHLTB, setCachedHLTB, getCachedSteam, setCachedSteam } from './cache';
 import { renderLanding, renderLoading, renderError, renderDashboard } from './ui/render';
 
@@ -228,9 +228,9 @@ async function handleFetchWishlist(steamId: string) {
       if (cached !== undefined) {
         if (cached) {
           game.hltbId = cached.id;
-          game.hltbMain = cached.gameplayMain || null;
-          game.hltbMainExtra = cached.gameplayMainExtra || null;
-          game.hltbCompletionist = cached.gameplayCompletionist || null;
+          game.hltbMain = cached.gameplayMain ? formatDurationHours(cached.gameplayMain) : null;
+          game.hltbMainExtra = cached.gameplayMainExtra ? formatDurationHours(cached.gameplayMainExtra) : null;
+          game.hltbCompletionist = cached.gameplayCompletionist ? formatDurationHours(cached.gameplayCompletionist) : null;
           game.hltbStatus = 'found';
         } else {
           game.hltbStatus = 'not_found';
@@ -257,9 +257,9 @@ async function handleFetchWishlist(steamId: string) {
 
           if (result) {
             game.hltbId = result.id;
-            game.hltbMain = result.gameplayMain || null;
-            game.hltbMainExtra = result.gameplayMainExtra || null;
-            game.hltbCompletionist = result.gameplayCompletionist || null;
+            game.hltbMain = result.gameplayMain ? formatDurationHours(result.gameplayMain) : null;
+            game.hltbMainExtra = result.gameplayMainExtra ? formatDurationHours(result.gameplayMainExtra) : null;
+            game.hltbCompletionist = result.gameplayCompletionist ? formatDurationHours(result.gameplayCompletionist) : null;
             game.hltbStatus = 'found';
           } else {
             game.hltbStatus = 'not_found';

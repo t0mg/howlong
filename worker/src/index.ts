@@ -203,10 +203,10 @@ async function handleHltbSearch(url: URL): Promise<Response> {
       id: r.game_id?.toString(),
       name: r.game_name,
       imageUrl: r.game_image ? `https://howlongtobeat.com/games/${r.game_image}` : null,
-      // HLTB returns seconds, we want hours
-      gameplayMain: r.comp_main ? Math.round(r.comp_main / 3600) : 0,
-      gameplayMainExtra: r.comp_plus ? Math.round(r.comp_plus / 3600) : 0,
-      gameplayCompletionist: r.comp_100 ? Math.round(r.comp_100 / 3600) : 0,
+      // HLTB returns seconds, we now pass seconds to the frontend for precise rounding
+      gameplayMain: r.comp_main || 0,
+      gameplayMainExtra: r.comp_plus || 0,
+      gameplayCompletionist: r.comp_100 || 0,
       similarity: 1,
     }));
 
