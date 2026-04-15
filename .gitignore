@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 .wrangler
+scratch
 
 # Editor directories and files
 .vscode/*
