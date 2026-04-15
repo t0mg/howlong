@@ -135,6 +135,7 @@ async function handleFetchWishlist(steamId: string) {
               hltbStatus: 'pending',
               priceStatus: priceData ? 'found' : (cached.priceFinal === null ? 'free' : 'stale'),
               isStale: !priceData && cached.priceFinal !== null,
+              dateAdded: item.date_added,
             });
 
             // Re-cache with updated prices if available
@@ -176,6 +177,7 @@ async function handleFetchWishlist(steamId: string) {
                 hltbCompletionist: null,
                 hltbStatus: 'pending',
                 priceStatus: priceData ? 'found' : (data.type === 'free' ? 'free' : 'not_found'),
+                dateAdded: item.date_added,
               };
 
               // Local cache for future sessions
@@ -333,7 +335,11 @@ function handleSort(field: SortField) {
     state.sort.direction = state.sort.direction === 'asc' ? 'desc' : 'asc';
   } else {
     state.sort.field = field;
-    state.sort.direction = field === 'name' ? 'asc' : 'desc';
+    if (field === 'name' || field === 'priority') {
+      state.sort.direction = 'asc';
+    } else {
+      state.sort.direction = 'desc';
+    }
   }
   renderDashboard(state, handleSort, handleReset, handleSettings);
 }

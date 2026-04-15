@@ -75,6 +75,7 @@ export interface GameEntry {
   hltbStatus: 'pending' | 'found' | 'not_found';
   priceStatus: 'pending' | 'found' | 'not_found' | 'free' | 'stale';
   isStale?: boolean;
+  dateAdded: number;
 }
 
 export interface CachedSteamData {
@@ -97,7 +98,8 @@ export type SortField =
   | 'hltbCompletionist'
   | 'priceFinal'
   | 'discountPercent'
-  | 'priority';
+  | 'priority'
+  | 'dateAdded';
 
 export type SortDirection = 'asc' | 'desc';
 

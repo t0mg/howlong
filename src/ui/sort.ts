@@ -46,6 +46,8 @@ function getFieldValue(game: GameEntry, field: SortField): string | number | nul
       return game.discountPercent;
     case 'priority':
       return game.priority;
+    case 'dateAdded':
+      return game.dateAdded;
     default:
       return null;
   }

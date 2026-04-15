@@ -291,6 +291,7 @@ function renderSortControls(
 
   const sortOptions: { value: SortField; label: string }[] = [
     { value: 'priority', label: 'Priority' },
+    { value: 'dateAdded', label: 'Date Added' },
     { value: 'name', label: 'Name' },
     { value: 'hltbMain', label: 'Duration (Main)' },
     { value: 'hltbMainExtra', label: 'Duration (Main+)' },
@@ -443,6 +444,10 @@ function createGameCard(game: GameEntry, currency: string): HTMLElement {
   const name = el('h3', { class: 'game-name' }, game.name);
   info.appendChild(name);
 
+  const dateStr = formatDate(game.dateAdded);
+  const dateEl = el('span', { class: 'game-date' }, `Added ${dateStr}`);
+  info.appendChild(dateEl);
+
   // Price
   const priceRow = el('div', { class: 'price-row' });
   if (game.isFree) {
@@ -540,6 +545,16 @@ function createDurationBar(
 }
 
 // ── Formatting ───────────────────────────────────────────────
+
+function formatDate(timestamp: number): string {
+  if (!timestamp) return '—';
+  // Steam timestamps are in seconds
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  }).format(new Date(timestamp * 1000));
+}
 
 function formatHours(hours: number): string {
   if (hours === 0) return '—';
