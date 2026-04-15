@@ -87,9 +87,9 @@ export function computeStats(games: GameEntry[]) {
   return {
     totalGames,
     gamesWithHltb,
-    totalMainHours: Math.round(totalMainHours * 10) / 10,
-    totalMainExtraHours: Math.round(totalMainExtraHours * 10) / 10,
-    totalCompletionistHours: Math.round(totalCompletionistHours * 10) / 10,
+    totalMainHours: Math.round(totalMainHours * 100) / 100,
+    totalMainExtraHours: Math.round(totalMainExtraHours * 100) / 100,
+    totalCompletionistHours: Math.round(totalCompletionistHours * 100) / 100,
     totalValue: Math.round(totalValue * 100) / 100,
     totalSavings: Math.round(totalSavings * 100) / 100,
     gamesOnSale,

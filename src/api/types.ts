@@ -40,9 +40,9 @@ export interface HLTBResult {
   id: string;
   name: string;
   imageUrl: string;
-  gameplayMain: number;        // hours
-  gameplayMainExtra: number;   // hours
-  gameplayCompletionist: number; // hours
+  gameplayMain: number;        // seconds
+  gameplayMainExtra: number;   // seconds
+  gameplayCompletionist: number; // seconds
   similarity: number;
 }
 
