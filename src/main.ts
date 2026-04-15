@@ -3,7 +3,7 @@ import type { AppState, GameEntry, SortField } from './api/types';
 import { REGION_MAP } from './api/types';
 import { fetchSteamWishlist, fetchSteamPriceBatch, fetchSteamMetadata } from './api/steam';
 import { searchHLTB, formatDurationHours } from './api/hltb';
-import { getCachedHLTB, setCachedHLTB, getCachedSteam, setCachedSteam } from './cache';
+import { getCachedHLTB, setCachedHLTB, getCachedSteam, setCachedSteam, getSetting, setSetting } from './cache';
 import { renderLanding, renderLoading, renderError, renderDashboard } from './ui/render';
 
 // ── App State ────────────────────────────────────────────────
@@ -25,11 +25,12 @@ const state: AppState = {
 
 // ── Boot ─────────────────────────────────────────────────────
 
-function init() {
-  // Load region choice
-  state.regionId = localStorage.getItem('howlong_region') || 'us';
+async function init() {
+  // Load settings from IDB
+  state.regionId = (await getSetting<string>('regionId')) || 'us';
+  const lastSteamId = (await getSetting<string>('lastSteamId')) || '';
   
-  renderLanding(handleFetchWishlist, handleSettings);
+  renderLanding(handleFetchWishlist, handleSettings, lastSteamId);
 }
 
 // ── Handlers ─────────────────────────────────────────────────
@@ -47,7 +48,7 @@ async function handleFetchWishlist(steamId: string) {
     renderLoading(state);
   };
 
-  localStorage.setItem('howlong_last_steam_id', steamId);
+  await setSetting('lastSteamId', steamId);
   renderLoading(state);
 
   try {
@@ -295,9 +296,9 @@ async function handleSettings() {
   renderSettingsModal(
     () => clearCache(),
     () => handleClearAppCache(),
-    (regionId) => {
+    async (regionId) => {
       state.regionId = regionId;
-      localStorage.setItem('howlong_region', regionId);
+      await setSetting('regionId', regionId);
     },
     state.regionId
   );

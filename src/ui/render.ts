@@ -32,7 +32,8 @@ function el<K extends keyof HTMLElementTagNameMap>(
 
 export function renderLanding(
   onSubmit: (steamId: string) => void,
-  onSettings: () => void
+  onSettings: () => void,
+  initialSteamId = ''
 ): void {
   const app = $('#app');
   app.innerHTML = '';
@@ -104,8 +105,7 @@ export function renderLanding(
   });
 
   // Restore last used Steam ID
-  const lastId = localStorage.getItem('howlong_last_steam_id');
-  if (lastId) (input as HTMLInputElement).value = lastId;
+  if (initialSteamId) (input as HTMLInputElement).value = initialSteamId;
 
   container.append(logo, title, subtitle, form, helpText);
   app.appendChild(container);
