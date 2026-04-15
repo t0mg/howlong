@@ -219,29 +219,38 @@ async function handleFetchWishlist(steamId: string) {
     
     renderLoading(state);
 
-    // 3) Enrich with HLTB data (with batching to be gentle on the API)
-    const HLTB_BATCH_SIZE = 10;
-    for (let i = 0; i < games.length; i += HLTB_BATCH_SIZE) {
-      const batch = games.slice(i, i + HLTB_BATCH_SIZE);
+    // 3) Enrich with HLTB data
 
+    // First pass: Resolve from local cache concurrently and instantly
+    const gamesToFetch: GameEntry[] = [];
+    await Promise.all(games.map(async (game) => {
+      const cached = await getCachedHLTB(game.name);
+      if (cached !== undefined) {
+        if (cached) {
+          game.hltbId = cached.id;
+          game.hltbMain = cached.gameplayMain || null;
+          game.hltbMainExtra = cached.gameplayMainExtra || null;
+          game.hltbCompletionist = cached.gameplayCompletionist || null;
+          game.hltbStatus = 'found';
+        } else {
+          game.hltbStatus = 'not_found';
+        }
+      } else {
+        gamesToFetch.push(game);
+      }
+    }));
+
+    state.loadingProgress = games.length - gamesToFetch.length;
+    renderLoading(state);
+
+    // Second pass: Fetch missing ones from API with batching/delay to be gentle
+    const HLTB_BATCH_SIZE = 10;
+    for (let i = 0; i < gamesToFetch.length; i += HLTB_BATCH_SIZE) {
+      if (state.isCancelled) break;
+
+      const batch = gamesToFetch.slice(i, i + HLTB_BATCH_SIZE);
       await Promise.all(
         batch.map(async (game) => {
-          // Check cache first
-          const cached = await getCachedHLTB(game.name);
-          if (cached !== undefined) {
-            if (cached) {
-              game.hltbId = cached.id;
-              game.hltbMain = cached.gameplayMain || null;
-              game.hltbMainExtra = cached.gameplayMainExtra || null;
-              game.hltbCompletionist = cached.gameplayCompletionist || null;
-              game.hltbStatus = 'found';
-            } else {
-              game.hltbStatus = 'not_found';
-            }
-            return;
-          }
-
-          // Fetch from API
           const result = await searchHLTB(game.name, () => state.isCancelled);
           if (state.isCancelled) return;
           await setCachedHLTB(game.name, result);
@@ -258,11 +267,10 @@ async function handleFetchWishlist(steamId: string) {
         })
       );
 
-      state.loadingProgress = Math.min(i + HLTB_BATCH_SIZE, games.length);
+      state.loadingProgress += batch.length;
       renderLoading(state);
 
-      if (state.isCancelled) break;
-      if (i + HLTB_BATCH_SIZE < games.length) {
+      if (!state.isCancelled && i + HLTB_BATCH_SIZE < gamesToFetch.length) {
         await sleep(300);
       }
     }
