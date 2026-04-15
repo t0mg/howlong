@@ -130,95 +130,119 @@ async function handleMetadata(appId: string): Promise<Response> {
   });
 }
 
-async function handleHltbSearch(url: URL): Promise<Response> {
+async function handleHltbSearch(url: URL, ctx: ExecutionContext): Promise<Response> {
   const query = url.searchParams.get('q');
   if (!query) {
     return jsonResponse({ error: 'Missing ?q= parameter' }, 400);
   }
 
-  try {
-    // 1. Handshake: init session
-    console.log(`[Worker] HLTB Init for: ${query}`);
-    const timestamp = Date.now();
-    const initRes = await fetch(`https://howlongtobeat.com/api/find/init?t=${timestamp}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Referer': 'https://howlongtobeat.com/',
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-    });
+  const cacheKey = new Request(`https://hltb-cache.internal/${query}`);
+  const cache = caches.default;
 
-    if (!initRes.ok) throw new Error(`HLTB Init failed: ${initRes.status}`);
-    const { token, hpKey, hpVal } = await initRes.json() as any;
+  // 1. Check if we already have the FINAL result
+  let response = await cache.match(cacheKey);
 
-    // 1.5 Safety delay to mimic human behavior
-    await new Promise(resolve => setTimeout(resolve, 100));
+  if (!response) {
+    console.log("[Worker] HLTB Cache Miss: Starting fetch chain...");
 
-    // 2. Handshake: Search with keys
-    console.log(`[Worker] HLTB Search for: ${query} (key: ${hpKey})`);
-    const searchRes = await fetch('https://howlongtobeat.com/api/find', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-auth-token': token,
-        'x-hp-key': hpKey,
-        'x-hp-val': hpVal,
-        'Origin': 'https://howlongtobeat.com',
-        'Referer': 'https://howlongtobeat.com/',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': '*/*',
-      },
-      body: JSON.stringify({
-        searchType: "games",
-        searchTerms: query.toLowerCase().split(/\s+/), // Cleaned & lowercased
-        searchPage: 1,
-        size: 20,
-        searchOptions: {
-          games: {
-            userId: 0,
-            platform: "",
-            sortCategory: "popular",
-            rangeCategory: "main",
-            rangeTime: { min: null, max: null },
-            gameplay: { perspective: "", flow: "", genre: "", difficulty: "" },
-            rangeYear: { min: "", max: "" },
-            modifier: ""
-          },
-          users: { sortCategory: "postcount" },
-          lists: { sortCategory: "follows" },
-          filter: "",
-          sort: 0,
-          randomizer: 0
+    try {
+      // 1. Handshake: init session
+      console.log(`[Worker] HLTB Init for: ${query}`);
+      const timestamp = Date.now();
+      const initRes = await fetch(`https://howlongtobeat.com/api/find/init?t=${timestamp}`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Referer': 'https://howlongtobeat.com/',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
         },
-        useCache: true,
-        [hpKey]: hpVal, // Dynamic security property
-      }),
-    });
+      });
 
-    if (!searchRes.ok) throw new Error(`HLTB Search failed: ${searchRes.status}`);
-    const searchData = await searchRes.json() as any;
+      if (!initRes.ok) throw new Error(`HLTB Init failed: ${initRes.status}`);
+      const { token, hpKey, hpVal } = await initRes.json() as any;
 
-    const results = (searchData.data || []).map((r: any) => ({
-      id: r.game_id?.toString(),
-      name: r.game_name,
-      imageUrl: r.game_image ? `https://howlongtobeat.com/games/${r.game_image}` : null,
-      // HLTB returns seconds, we now pass seconds to the frontend for precise rounding
-      gameplayMain: r.comp_main || 0,
-      gameplayMainExtra: r.comp_plus || 0,
-      gameplayCompletionist: r.comp_100 || 0,
-      similarity: 1,
-    }));
+      // 1.5 Safety delay to mimic human behavior
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-    return jsonResponse(results);
-  } catch (err: unknown) {
-    console.error('[Worker] HLTB Error:', err);
-    return jsonResponse({ error: 'HLTB lookup failed' }, 500);
+      // 2. Handshake: Search with keys
+      console.log(`[Worker] HLTB Search for: ${query} (key: ${hpKey})`);
+      const searchRes = await fetch('https://howlongtobeat.com/api/find', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+          'x-hp-key': hpKey,
+          'x-hp-val': hpVal,
+          'Origin': 'https://howlongtobeat.com',
+          'Referer': 'https://howlongtobeat.com/',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': '*/*',
+        },
+        body: JSON.stringify({
+          searchType: "games",
+          searchTerms: query.toLowerCase().split(/\s+/), // Cleaned & lowercased
+          searchPage: 1,
+          size: 20,
+          searchOptions: {
+            games: {
+              userId: 0,
+              platform: "",
+              sortCategory: "popular",
+              rangeCategory: "main",
+              rangeTime: { min: null, max: null },
+              gameplay: { perspective: "", flow: "", genre: "", difficulty: "" },
+              rangeYear: { min: "", max: "" },
+              modifier: ""
+            },
+            users: { sortCategory: "postcount" },
+            lists: { sortCategory: "follows" },
+            filter: "",
+            sort: 0,
+            randomizer: 0
+          },
+          useCache: true,
+          [hpKey]: hpVal, // Dynamic security property
+        }),
+      });
+
+      if (!searchRes.ok) throw new Error(`HLTB Search failed: ${searchRes.status}`);
+      const searchData = await searchRes.json() as any;
+
+      const results = (searchData.data || []).map((r: any) => ({
+        id: r.game_id?.toString(),
+        name: r.game_name,
+        imageUrl: r.game_image ? `https://howlongtobeat.com/games/${r.game_image}` : null,
+        // HLTB returns seconds, we now pass seconds to the frontend for precise rounding
+        gameplayMain: r.comp_main || 0,
+        gameplayMainExtra: r.comp_plus || 0,
+        gameplayCompletionist: r.comp_100 || 0,
+        similarity: 1,
+      }));
+
+      response = jsonResponse(results);
+      response.headers.set("Cache-Control", "s-maxage=604800");
+      response.headers.set("X-Cache-Status", "MISS");
+
+      // 5. Store it for next time
+      // Use waitUntil so the user doesn't wait for the cache write
+      ctx.waitUntil(cache.put(cacheKey, response.clone()));
+    } catch (err: unknown) {
+      console.error('[Worker] HLTB Error:', err);
+      response = jsonResponse({ error: 'HLTB lookup failed' }, 500);
+    }
+
+  } else {
+    console.log("[Worker] HLTB Cache Hit: Bypassing all fetches.");
+
+    // Optional: Add a header so you can verify the hit in your browser
+    response = new Response(response.body, response);
+    response.headers.set("X-Cache-Status", "HIT");
   }
+  return response;
 }
 
 export default {
-  async fetch(request: Request): Promise<Response> {
+  async fetch(request: Request, env: any, ctx: ExecutionContext): Promise<Response> {
     // Handle CORS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
@@ -248,7 +272,7 @@ export default {
       // ── HLTB Search ───────────────────────────────────────
       // GET /hltb/search?q=Game+Name
       if (path === '/hltb/search') {
-        return await handleHltbSearch(url);
+        return await handleHltbSearch(url, ctx);
       }
 
       // ── Health Check ──────────────────────────────────────
