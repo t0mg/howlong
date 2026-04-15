@@ -102,72 +102,87 @@ async function handleFetchWishlist(steamId: string) {
         const promise = (async () => {
           const appIdStr = item.appid.toString();
           
-          // Use Metadata endpoint (high TTL + scrape fallback)
-          const metaRes = await fetchSteamMetadata(appIdStr);
-          const priceData = priceMap[appIdStr]?.success ? priceMap[appIdStr].data?.price_overview : null;
+          // Try to get from local cache first
+          const cached = await getCachedSteam(appIdStr);
           
-          if (metaRes && metaRes[appIdStr]?.success) {
-            const data = metaRes[appIdStr].data!;
-            const discountPercent = priceData?.discount_percent || 0;
+          if (cached) {
+            const priceData = priceMap[appIdStr]?.success ? priceMap[appIdStr].data?.price_overview : null;
 
-            const game: GameEntry = {
+            // Prefer cached metadata, update prices if we fetched them
+            games.push({
               appId: appIdStr,
-              name: data.name,
-              capsuleUrl: data.header_image,
+              name: cached.name,
+              capsuleUrl: cached.capsuleUrl,
               releaseDate: '',
               reviewDesc: '',
               reviewPercent: 0,
               tags: [],
-              isFree: data.type === 'free' || (!priceData && data.type !== 'dlc'),
+              isFree: priceData ? false : (cached.priceFinal === null && cached.priceInitial === null),
               priority: item.priority || 999,
               priceCurrency: priceData?.currency || null,
-              priceInitial: priceData ? priceData.initial / 100 : null,
-              priceFinal: priceData ? priceData.final / 100 : null,
-              discountPercent,
+              priceInitial: priceData ? priceData.initial / 100 : cached.priceInitial,
+              priceFinal: priceData ? priceData.final / 100 : cached.priceFinal,
+              discountPercent: priceData ? priceData.discount_percent : cached.discountPercent,
               hltbId: null,
               hltbMain: null,
               hltbMainExtra: null,
               hltbCompletionist: null,
               hltbStatus: 'pending',
-              priceStatus: priceData ? 'found' : (data.type === 'free' ? 'free' : 'not_found'),
-            };
-
-            // Local cache for future sessions
-            setCachedSteam(appIdStr, {
-              name: game.name,
-              capsuleUrl: game.capsuleUrl,
-              priceInitial: game.priceInitial,
-              priceFinal: game.priceFinal,
-              discountPercent: game.discountPercent,
+              priceStatus: priceData ? 'found' : (cached.priceFinal === null ? 'free' : 'stale'),
+              isStale: !priceData && cached.priceFinal !== null,
             });
 
-            games.push(game);
-          } else {
-            // Last resort: Fallback to local cache from previous full success
-            const cached = getCachedSteam(appIdStr);
-            if (cached) {
-              games.push({
-                appId: appIdStr,
+            // Re-cache with updated prices if available
+            if (priceData) {
+              await setCachedSteam(appIdStr, {
                 name: cached.name,
                 capsuleUrl: cached.capsuleUrl,
+                priceInitial: priceData.initial / 100,
+                priceFinal: priceData.final / 100,
+                discountPercent: priceData.discount_percent,
+              });
+            }
+          } else {
+            // If not in cache, fetch metadata from API
+            const metaRes = await fetchSteamMetadata(appIdStr);
+            const priceData = priceMap[appIdStr]?.success ? priceMap[appIdStr].data?.price_overview : null;
+
+            if (metaRes && metaRes[appIdStr]?.success) {
+              const data = metaRes[appIdStr].data!;
+              const discountPercent = priceData?.discount_percent || 0;
+
+              const game: GameEntry = {
+                appId: appIdStr,
+                name: data.name,
+                capsuleUrl: data.header_image,
                 releaseDate: '',
                 reviewDesc: '',
                 reviewPercent: 0,
                 tags: [],
-                isFree: false,
+                isFree: data.type === 'free' || (!priceData && data.type !== 'dlc'),
                 priority: item.priority || 999,
-                priceCurrency: null,
-                priceInitial: cached.priceInitial,
-                priceFinal: cached.priceFinal,
-                discountPercent: cached.discountPercent,
+                priceCurrency: priceData?.currency || null,
+                priceInitial: priceData ? priceData.initial / 100 : null,
+                priceFinal: priceData ? priceData.final / 100 : null,
+                discountPercent,
                 hltbId: null,
                 hltbMain: null,
                 hltbMainExtra: null,
                 hltbCompletionist: null,
                 hltbStatus: 'pending',
-                priceStatus: 'stale',
-                isStale: true,
+                priceStatus: priceData ? 'found' : (data.type === 'free' ? 'free' : 'not_found'),
+              };
+
+              // Local cache for future sessions
+              await setCachedSteam(appIdStr, {
+                name: game.name,
+                capsuleUrl: game.capsuleUrl,
+                priceInitial: game.priceInitial,
+                priceFinal: game.priceFinal,
+                discountPercent: game.discountPercent,
               });
+
+              games.push(game);
             }
           }
 
@@ -212,7 +227,7 @@ async function handleFetchWishlist(steamId: string) {
       await Promise.all(
         batch.map(async (game) => {
           // Check cache first
-          const cached = getCachedHLTB(game.name);
+          const cached = await getCachedHLTB(game.name);
           if (cached !== undefined) {
             if (cached) {
               game.hltbId = cached.id;
@@ -229,7 +244,7 @@ async function handleFetchWishlist(steamId: string) {
           // Fetch from API
           const result = await searchHLTB(game.name, () => state.isCancelled);
           if (state.isCancelled) return;
-          setCachedHLTB(game.name, result);
+          await setCachedHLTB(game.name, result);
 
           if (result) {
             game.hltbId = result.id;
