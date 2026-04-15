@@ -232,7 +232,20 @@ export function renderDashboard(
   const region = REGION_MAP[state.regionId] || REGION_MAP.us;
   const currency = region.currency;
 
-  // ─ Header
+  app.append(
+    renderHeader(state, onReset, onSettings),
+    renderStatsBar(stats, currency),
+    renderSortControls(state, onSort),
+    renderMatchInfo(stats),
+    renderGameGrid(sorted, currency)
+  );
+}
+
+function renderHeader(
+  state: AppState,
+  onReset: () => void,
+  onSettings: () => void
+): HTMLElement {
   const header = el('header', { class: 'dashboard-header' });
   const headerLeft = el('div', { class: 'header-left' });
   const headerTitle = el('h1', { class: 'header-title' }, 'How Long to Clear');
@@ -249,8 +262,13 @@ export function renderDashboard(
 
   const actions = el('div', { class: 'header-actions' }, resetBtn, settingsBtn);
   header.append(headerLeft, actions);
+  return header;
+}
 
-  // ─ Stats Bar
+function renderStatsBar(
+  stats: ReturnType<typeof computeStats>,
+  currency: string
+): HTMLElement {
   const statsBar = el('div', { class: 'stats-bar' });
   statsBar.append(
     createStatCard('🎮', 'Games', `${stats.totalGames}`),
@@ -260,8 +278,13 @@ export function renderDashboard(
     createStatCard('💰', 'Wishlist Value', `${formatCurrency(stats.totalValue, currency)}`),
     createStatCard('🏷️', 'Sale Savings', `${formatCurrency(stats.totalSavings, currency)}`),
   );
+  return statsBar;
+}
 
-  // ─ Sort Controls
+function renderSortControls(
+  state: AppState,
+  onSort: (field: SortField) => void
+): HTMLElement {
   const controls = el('div', { class: 'sort-controls' });
   const sortLabel = el('span', { class: 'sort-label' }, 'Sort by:');
   controls.appendChild(sortLabel);
@@ -294,18 +317,21 @@ export function renderDashboard(
     btn.addEventListener('click', () => onSort(opt.value));
     controls.appendChild(btn);
   }
+  return controls;
+}
 
-  // ─ HLTB match counter
+function renderMatchInfo(stats: ReturnType<typeof computeStats>): HTMLElement {
   const matchInfo = el('div', { class: 'match-info' });
   matchInfo.textContent = `HLTB data found for ${stats.gamesWithHltb} / ${stats.totalGames} games`;
+  return matchInfo;
+}
 
-  // ─ Game Grid
+function renderGameGrid(sortedGames: GameEntry[], currency: string): HTMLElement {
   const grid = el('div', { class: 'game-grid' });
-  for (const game of sorted) {
+  for (const game of sortedGames) {
     grid.appendChild(createGameCard(game, currency));
   }
-
-  app.append(header, statsBar, controls, matchInfo, grid);
+  return grid;
 }
 
 export function renderSettingsModal(
