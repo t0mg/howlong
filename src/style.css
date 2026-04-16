@@ -592,7 +592,7 @@ img {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
-  padding: 1rem 0;
+  padding: 1rem 2rem;
 }
 
 .grid-sentinel {
