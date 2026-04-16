@@ -67,7 +67,6 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
   line-height: 1.6;
-  overflow-x: hidden;
   scrollbar-gutter: stable;
 }
 
@@ -387,6 +386,12 @@ img {
   max-width: 480px;
 }
 
+/* ── Dashboard Layout ───────────────────────────────────────── */
+
+.dashboard-shell>[data-ref$="Region"] {
+  display: contents;
+}
+
 /* ── Dashboard Header ──────────────────────────────────────── */
 
 .dashboard-header {
@@ -437,7 +442,6 @@ img {
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0.75rem;
   padding: 1.25rem 2rem;
-  animation: fadeIn 500ms ease-out;
 }
 
 .stat-card {
@@ -484,7 +488,10 @@ img {
   gap: 0;
   border-bottom: 1px solid var(--bg-glass-border);
   background: var(--bg-surface);
-  animation: fadeIn 500ms ease-out 100ms both;
+  backdrop-filter: blur(16px);
+  position: sticky;
+  top: 80px;
+  z-index: 90;
 }
 
 .filter-controls {
@@ -583,7 +590,6 @@ img {
   padding: 0.5rem 2rem;
   font-size: 0.78rem;
   color: var(--text-muted);
-  animation: fadeIn 500ms ease-out 200ms both;
 }
 
 /* ── Game Grid ─────────────────────────────────────────────── */
@@ -593,6 +599,7 @@ img {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
   padding: 1rem 2rem;
+  animation: fadeIn 400ms ease-out;
 }
 
 .grid-sentinel {
@@ -1026,6 +1033,7 @@ img {
     flex-direction: column;
     gap: 0.75rem;
     align-items: flex-start;
+    position: relative;
   }
 
   .stats-bar {
@@ -1045,6 +1053,7 @@ img {
   .controls-container {
     padding: 0;
     flex-direction: column;
+    top: 0;
   }
 
   .filter-controls {

@@ -138,7 +138,26 @@ export function renderDashboard(
   onInsights: () => void
 ): void {
   const app = $('#app');
-  app.innerHTML = '';
+  let shell = app.querySelector('.dashboard-shell') as HTMLElement;
+
+  if (!shell) {
+    app.innerHTML = '';
+    const { element, refs: shellRefs } = view<{
+      headerRegion: HTMLElement;
+      statsRegion: HTMLElement;
+      controlsRegion: HTMLElement;
+      infoRegion: HTMLElement;
+      gridRegion: HTMLElement;
+    }>('tpl-dashboard-shell');
+
+    shell = element;
+    app.appendChild(shell);
+
+    // Initial static renders
+    shellRefs.headerRegion.appendChild(renderHeader(state, onReset, onSettings, onInsights));
+  }
+
+  const getRegion = (ref: string) => shell.querySelector(`[data-ref="${ref}"]`) as HTMLElement;
 
   const filtered = filterGames(state.games, state.filterCategory);
   const sorted = sortGames(filtered, state.sort.field, state.sort.direction);
@@ -146,13 +165,25 @@ export function renderDashboard(
   const region = REGION_MAP[state.regionId] || REGION_MAP.us;
   const currency = region.currency;
 
-  app.append(
-    renderHeader(state, onReset, onSettings, onInsights),
-    renderStatsBar(stats, currency),
-    renderFilterAndSort(state, onSort, onFilter),
-    renderMatchInfo(stats),
-    renderGameGrid(sorted, currency)
-  );
+  // Stats
+  const statsRegion = getRegion('statsRegion');
+  statsRegion.innerHTML = '';
+  statsRegion.appendChild(renderStatsBar(stats, currency));
+
+  // Controls
+  const controlsRegion = getRegion('controlsRegion');
+  controlsRegion.innerHTML = '';
+  controlsRegion.appendChild(renderFilterAndSort(state, onSort, onFilter));
+
+  // Info
+  const infoRegion = getRegion('infoRegion');
+  infoRegion.innerHTML = '';
+  infoRegion.appendChild(renderMatchInfo(stats));
+
+  // Grid
+  const gridRegion = getRegion('gridRegion');
+  gridRegion.innerHTML = '';
+  gridRegion.appendChild(renderGameGrid(sorted, currency));
 }
 
 function renderHeader(
