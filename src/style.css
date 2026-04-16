@@ -297,6 +297,15 @@ img {
   color: var(--text-secondary);
 }
 
+.progress-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 400px;
+}
+
 .progress-bar {
   width: 100%;
   max-width: 400px;
@@ -748,7 +757,8 @@ img {
   text-decoration: line-through;
 }
 
-.price-free, .price-status {
+.price-free,
+.price-status {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--success);

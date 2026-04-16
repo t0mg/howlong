@@ -5,6 +5,7 @@ import { fetchSteamWishlist, fetchSteamPriceBatch, fetchSteamMetadata } from './
 import { searchHLTB, formatDurationHours } from './api/hltb';
 import { getCachedHLTB, setCachedHLTB, getCachedSteam, setCachedSteam, getSetting, setSetting, clearHLTBCache, clearSteamCache } from './cache';
 import { renderLanding, renderLoading, renderError, renderDashboard, renderStatsModal } from './ui/render';
+import { t } from './ui/i18n';
 
 // ── App State ────────────────────────────────────────────────
 
@@ -57,7 +58,7 @@ async function handleFetchWishlist(steamId: string) {
   // region mapping is used from state during individual fetches
   state.onStop = () => {
     state.isCancelled = true;
-    state.loadingMessage = 'Stopping and preparing results...';
+    state.loadingMessage = t('loading_stopping');
     renderLoading(state);
   };
 
@@ -66,20 +67,20 @@ async function handleFetchWishlist(steamId: string) {
 
   try {
     // 1) Fetch wishlist AppIDs
-    state.loadingMessage = 'Fetching wishlist AppID list...';
+    state.loadingMessage = t('loading_fetching_appid');
     renderLoading(state);
 
     const wishlistItems = await fetchSteamWishlist(steamId);
     if (!wishlistItems || wishlistItems.length === 0) {
-      throw new Error('Wishlist is empty or private.');
+      throw new Error(t('error_wishlist_private'));
     }
 
     state.loadingTotal = wishlistItems.length;
-    state.loadingMessage = `Fetching details for ${wishlistItems.length} games...`;
+    state.loadingMessage = t('loading_fetching_details_count', { count: wishlistItems.length });
     renderLoading(state);
 
     // 2) Fetch Prices in Batches (Very efficient, avoids rate limits)
-    state.loadingMessage = 'Fetching game prices...';
+    state.loadingMessage = t('loading_fetching_prices');
     renderLoading(state);
 
     const region = REGION_MAP[state.regionId] || REGION_MAP.us;
@@ -96,7 +97,7 @@ async function handleFetchWishlist(steamId: string) {
     }
 
     // 3) Fetch Metadata individually (Cached at edge + Fallback scraping)
-    state.loadingMessage = `Fetching game details for ${wishlistItems.length} games...`;
+    state.loadingMessage = t('loading_fetching_details_count', { count: wishlistItems.length });
     renderLoading(state);
 
     const games: GameEntry[] = [];
@@ -120,8 +121,8 @@ async function handleFetchWishlist(steamId: string) {
           const cached = await getCachedSteam(appIdStr);
           // Metadata is stale if new status fields are missing entirely (migration)
           // Fallback results aren't in the disk cache, so they naturally retry on reload
-          const isMetadataStale = !cached || 
-            cached.isComingSoon === undefined || 
+          const isMetadataStale = !cached ||
+            cached.isComingSoon === undefined ||
             cached.hasDemo === undefined;
 
           if (cached && !isMetadataStale) {
@@ -226,7 +227,7 @@ async function handleFetchWishlist(steamId: string) {
 
           completedCount++;
           if (completedCount % 5 === 0 || completedCount === items.length) {
-            state.loadingMessage = `Fetching game details (${completedCount}/${wishlistItems.length})...`;
+            state.loadingMessage = t('loading_fetching_details');
             state.loadingProgress = completedCount;
             renderLoading(state);
           }
@@ -243,13 +244,13 @@ async function handleFetchWishlist(steamId: string) {
     await fetchWithLimit(wishlistItems);
 
     if (games.length === 0) {
-      throw new Error('Could not fetch details for any games in your wishlist.');
+      throw new Error(t('error_no_details'));
     }
 
     state.games = games;
     state.loadingProgress = 0;
     state.loadingTotal = games.length;
-    state.loadingMessage = 'Enriching with HowLongToBeat data...';
+    state.loadingMessage = t('loading_enriching');
 
     // Reset cancellation for HLTB phase - we always want to enrich whatever we found
     state.isCancelled = false;
@@ -321,7 +322,7 @@ async function handleFetchWishlist(steamId: string) {
 
   } catch (err: unknown) {
     state.loading = false;
-    const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
+    const message = err instanceof Error ? err.message : t('error_unexpected');
     state.error = message;
     renderError(message, () => renderLanding(handleFetchWishlist, handleSettings));
   }
