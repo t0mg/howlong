@@ -172,8 +172,16 @@ export function renderDashboard(
 
   // Controls
   const controlsRegion = getRegion('controlsRegion');
+  const prevSortControls = controlsRegion.querySelector('.sort-controls');
+  const scrollLeft = prevSortControls ? prevSortControls.scrollLeft : 0;
+
   controlsRegion.innerHTML = '';
   controlsRegion.appendChild(renderFilterAndSort(state, onSort, onFilter));
+
+  if (scrollLeft > 0) {
+    const nextSortControls = controlsRegion.querySelector('.sort-controls');
+    if (nextSortControls) nextSortControls.scrollLeft = scrollLeft;
+  }
 
   // Info
   const infoRegion = getRegion('infoRegion');
