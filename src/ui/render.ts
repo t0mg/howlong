@@ -178,7 +178,7 @@ export function renderDashboard(
   // Info
   const infoRegion = getRegion('infoRegion');
   infoRegion.innerHTML = '';
-  infoRegion.appendChild(renderMatchInfo(stats));
+  infoRegion.appendChild(renderMatchInfo(state, stats));
 
   // Grid
   const gridRegion = getRegion('gridRegion');
@@ -293,11 +293,24 @@ function renderFilterAndSort(
   return element;
 }
 
-function renderMatchInfo(stats: ReturnType<typeof computeStats>): HTMLElement {
+function renderMatchInfo(state: AppState, stats: ReturnType<typeof computeStats>): HTMLElement {
+  const container = document.createElement('div');
+  container.className = 'match-info-container';
+
   const el = document.createElement('div');
   el.className = 'match-info';
   el.textContent = t('dashboard_match_info', { found: stats.gamesWithHltb, total: stats.totalGames });
-  return el;
+  container.appendChild(el);
+
+  const errorPct = state.games.length > 0 ? (state.hltbErrorCount / state.games.length) : 0;
+  if (errorPct >= 0.1) {
+    const warning = document.createElement('div');
+    warning.className = 'match-warning';
+    warning.textContent = t('dashboard_hltb_warning');
+    container.appendChild(warning);
+  }
+
+  return container;
 }
 
 function renderGameGrid(sortedGames: GameEntry[], currency: string): HTMLElement {
@@ -388,6 +401,8 @@ function createGameCard(game: GameEntry, currency: string): HTMLElement {
   // Price
   if (game.isComingSoon) {
     refs.priceRow.innerHTML = `<span class="price-status">${t('game_coming_soon')}</span>`;
+  } else if (game.isUnavailable) {
+    refs.priceRow.innerHTML = `<span class="price-unavailable">${t('game_unavailable')}</span>`;
   } else if (game.isFree || game.isDemo) {
     refs.priceRow.innerHTML = `<span class="price-free">${t('game_free')}</span>`;
   } else if (game.priceStatus === 'stale') {

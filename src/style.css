@@ -586,10 +586,23 @@ img {
 
 /* ── Match Info ────────────────────────────────────────────── */
 
-.match-info {
+.match-info-container {
   padding: 0.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.match-info {
   font-size: 0.78rem;
-  color: var(--text-muted);
+  color: var(--text-secondary);
+}
+
+.match-warning {
+  font-size: 0.75rem;
+  color: var(--warning);
+  font-weight: 500;
+  animation: fadeIn 300ms ease-out;
 }
 
 /* ── Game Grid ─────────────────────────────────────────────── */
@@ -788,6 +801,15 @@ img {
   font-size: 0.8rem;
   color: var(--text-muted);
   font-style: italic;
+}
+
+.price-unavailable {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
 }
 
 /* ── HLTB Duration Bars ────────────────────────────────────── */

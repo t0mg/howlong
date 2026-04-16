@@ -14,6 +14,7 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Expose-Headers': 'X-Cache-Status',
 };
 
 async function handleWishlist(steamId: string): Promise<Response> {
@@ -103,7 +104,7 @@ async function handleMetadata(appId: string): Promise<Response> {
 
     if (htmlRes.ok) {
       const html = await htmlRes.text();
-      
+
       const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
       if (titleMatch) {
         let title = titleMatch[1].trim();
@@ -239,6 +240,9 @@ async function handleHltbSearch(url: URL, ctx: ExecutionContext): Promise<Respon
       response = jsonResponse(results);
       response.headers.set("Cache-Control", "s-maxage=604800");
       response.headers.set("X-Cache-Status", "MISS");
+      for (const [key, value] of Object.entries(CORS_HEADERS)) {
+        response.headers.set(key, value);
+      }
 
       // 5. Store it for next time
       // Use waitUntil so the user doesn't wait for the cache write
@@ -254,6 +258,9 @@ async function handleHltbSearch(url: URL, ctx: ExecutionContext): Promise<Respon
     // Optional: Add a header so you can verify the hit in your browser
     response = new Response(response.body, response);
     response.headers.set("X-Cache-Status", "HIT");
+    for (const [key, value] of Object.entries(CORS_HEADERS)) {
+      response.headers.set(key, value);
+    }
   }
   return response;
 }

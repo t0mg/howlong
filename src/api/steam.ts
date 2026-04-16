@@ -37,19 +37,34 @@ export async function fetchSteamPriceBatch(
   if (appIds.length === 0) return null;
   const ids = appIds.join(',');
   const url = `${PROXY_BASE}/steam/prices-batch?ids=${ids}&cc=${cc}&t=${Date.now()}`;
-  
-  try {
-    const res = await fetch(url, { cache: 'no-cache' });
-    if (res.status === 200) return await res.json() as SteamAppDetailsResponse;
-    if (res.status === 429 || res.status === 403) {
-      console.warn(`[Steam] Batch price fetch rate limited (${res.status}).`);
-      return null;
+
+  let attempts = 0;
+  const maxAttempts = 3;
+
+  while (attempts < maxAttempts) {
+    try {
+      const res = await fetch(url, { cache: 'no-cache' });
+      if (res.status === 200) return await res.json() as SteamAppDetailsResponse;
+
+      if (res.status === 429 || res.status === 403) {
+        console.warn(`[Steam] Batch price fetch rate limited (${res.status}). Attempt ${attempts + 1}/${maxAttempts}`);
+      } else if (res.status >= 500) {
+        console.warn(`[Steam] Batch price fetch server error (${res.status}). Attempt ${attempts + 1}/${maxAttempts}`);
+      } else {
+        return null; // Don't retry on other errors
+      }
+    } catch (err) {
+      console.error(`[Steam] Batch price fetch failed (attempt ${attempts + 1}/${maxAttempts}):`, err);
     }
-    return null;
-  } catch (err) {
-    console.error('[Steam] Batch price fetch failed:', err);
-    return null;
+
+    attempts++;
+    if (attempts < maxAttempts) {
+      const delay = Math.pow(2, attempts) * 500; // 1s, 2s, 4s...
+      await new Promise(r => setTimeout(r, delay));
+    }
   }
+
+  return null;
 }
 
 /**
@@ -60,7 +75,7 @@ export async function fetchSteamMetadata(
   appId: string
 ): Promise<SteamAppDetailsResponse | null> {
   const url = `${PROXY_BASE}/steam/metadata/${appId}?t=${Date.now()}`;
-  
+
   try {
     const res = await fetch(url, { cache: 'no-cache' });
     if (res.status === 200) return await res.json() as SteamAppDetailsResponse;

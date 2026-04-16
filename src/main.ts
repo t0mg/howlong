@@ -24,6 +24,7 @@ const state: AppState = {
   isThrottled: false,
   throttledUntil: null,
   regionId: 'us',
+  hltbErrorCount: 0,
 };
 
 // ── Boot ─────────────────────────────────────────────────────
@@ -80,6 +81,8 @@ async function handleFetchWishlist(steamId: string) {
     renderLoading(state);
 
     // 2) Fetch Prices in Batches (Very efficient, avoids rate limits)
+    state.loadingTotal = wishlistItems.length;
+    state.loadingProgress = 0;
     state.loadingMessage = t('loading_fetching_prices');
     renderLoading(state);
 
@@ -94,6 +97,8 @@ async function handleFetchWishlist(steamId: string) {
       if (batchResults) {
         Object.assign(priceMap, batchResults);
       }
+      state.loadingProgress = Math.min(i + PRICE_BATCH_SIZE, wishlistItems.length);
+      renderLoading(state);
     }
 
     // 3) Fetch Metadata individually (Cached at edge + Fallback scraping)
@@ -116,28 +121,40 @@ async function handleFetchWishlist(steamId: string) {
 
         const promise = (async () => {
           const appIdStr = item.appid.toString();
-
-          // Try to get from local cache first
           const cached = await getCachedSteam(appIdStr);
-          // Metadata is stale if new status fields are missing entirely (migration)
-          // Fallback results aren't in the disk cache, so they naturally retry on reload
-          const isMetadataStale = !cached ||
+          const priceData = priceMap[appIdStr]?.success ? priceMap[appIdStr].data?.price_overview : null;
+          const apiSuccess = priceMap[appIdStr]?.success;
+
+          // Metadata is stale if:
+          // 1. Not in cache
+          // 2. Missing migration fields (isComingSoon, hasDemo)
+          // 3. Status change: we have a live price now, but cache says it was Coming Soon or Unavailable
+          let isMetadataStale = !cached ||
             cached.isComingSoon === undefined ||
             cached.hasDemo === undefined;
 
           if (cached && !isMetadataStale) {
-            const priceData = priceMap[appIdStr]?.success ? priceMap[appIdStr].data?.price_overview : null;
+            // Check for status change launch (Going from Coming Soon/Unavailable -> Having a real Price)
+            if (priceData && (cached.isComingSoon || cached.isUnavailable)) {
+              isMetadataStale = true;
+            }
+          }
 
-            // Prefer cached metadata, update prices if we fetched them
-            games.push({
+          if (cached && !isMetadataStale) {
+            // --- CACHE HIT ---
+            const game: GameEntry = {
               appId: appIdStr,
               name: cached.name,
               capsuleUrl: cached.capsuleUrl,
               releaseDate: '',
+              reviewDesc: '',
+              reviewPercent: 0,
+              genres: cached.genres || [],
               isComingSoon: !!cached.isComingSoon,
               isDemo: !!cached.isDemo,
               hasDemo: !!cached.hasDemo,
-              isFree: priceData ? false : (cached.priceFinal === null && cached.priceInitial === null && !cached.isComingSoon),
+              isFree: cached.isFree ?? (priceData ? false : (cached.priceFinal === null && cached.priceInitial === null && !cached.isComingSoon)),
+              isUnavailable: !cached.isFree && !priceData && !cached.isComingSoon,
               priority: item.priority || 999,
               priceCurrency: priceData?.currency || null,
               priceInitial: priceData ? priceData.initial / 100 : cached.priceInitial,
@@ -148,32 +165,32 @@ async function handleFetchWishlist(steamId: string) {
               hltbMainExtra: null,
               hltbCompletionist: null,
               hltbStatus: 'pending',
-              priceStatus: priceData ? 'found' : (cached.priceFinal === null ? 'free' : 'stale'),
-              isStale: !priceData && cached.priceFinal !== null,
+              priceStatus: priceData ? 'found' : (cached.isFree ? 'free' : (!priceData && !cached.isComingSoon ? 'unavailable' : 'stale')),
+              isStale: !priceData && cached.priceFinal !== null && !cached.isFree,
               dateAdded: item.date_added,
-              reviewDesc: '',
-              reviewPercent: 0,
-              genres: cached.genres || [],
-            });
+            };
 
-            // Re-cache with updated prices if available
-            if (priceData) {
+            games.push(game);
+
+            // Update only prices/availability in cache if they changed, keep metadata persistent
+            if (apiSuccess) {
               await setCachedSteam(appIdStr, {
                 name: cached.name,
                 capsuleUrl: cached.capsuleUrl,
-                priceInitial: priceData.initial / 100,
-                priceFinal: priceData.final / 100,
-                discountPercent: priceData.discount_percent,
+                priceInitial: game.priceInitial,
+                priceFinal: game.priceFinal,
+                discountPercent: game.discountPercent,
                 genres: cached.genres || [],
-                isComingSoon: cached.isComingSoon,
-                isDemo: cached.isDemo,
-                hasDemo: cached.hasDemo,
+                isFree: game.isFree,
+                isComingSoon: game.isComingSoon,
+                isUnavailable: game.isUnavailable,
+                isDemo: game.isDemo,
+                hasDemo: game.hasDemo,
               });
             }
           } else {
-            // If not in cache, fetch metadata from API
+            // --- API FETCH (MISS OR STALE) ---
             const metaRes = await fetchSteamMetadata(appIdStr);
-            const priceData = priceMap[appIdStr]?.success ? priceMap[appIdStr].data?.price_overview : null;
 
             if (metaRes && metaRes[appIdStr]?.success) {
               const data = metaRes[appIdStr].data!;
@@ -190,7 +207,8 @@ async function handleFetchWishlist(steamId: string) {
                 isComingSoon: !!data.release_date?.coming_soon,
                 isDemo: data.type === 'demo',
                 hasDemo: !!(data.demos && data.demos.length > 0),
-                isFree: data.is_free || data.type === 'free' || (!priceData && data.type !== 'dlc' && !data.release_date?.coming_soon),
+                isFree: !!(data.is_free || data.type === 'free' || data.type === 'demo'),
+                isUnavailable: !(data.is_free || data.type === 'free' || data.type === 'demo') && !priceData && !data.release_date?.coming_soon,
                 priority: item.priority || 999,
                 priceCurrency: priceData?.currency || null,
                 priceInitial: priceData ? priceData.initial / 100 : null,
@@ -201,7 +219,7 @@ async function handleFetchWishlist(steamId: string) {
                 hltbMainExtra: null,
                 hltbCompletionist: null,
                 hltbStatus: 'pending',
-                priceStatus: priceData ? 'found' : ((data.is_free || data.type === 'free') ? 'free' : 'not_found'),
+                priceStatus: priceData ? 'found' : ((data.is_free || data.type === 'free' || data.type === 'demo') ? 'free' : (!priceData && !data.release_date?.coming_soon ? 'unavailable' : 'not_found')),
                 dateAdded: item.date_added,
               };
 
@@ -215,7 +233,9 @@ async function handleFetchWishlist(steamId: string) {
                   priceFinal: game.priceFinal,
                   discountPercent: game.discountPercent,
                   genres: game.genres,
+                  isFree: game.isFree,
                   isComingSoon: game.isComingSoon,
+                  isUnavailable: game.isUnavailable,
                   isDemo: game.isDemo,
                   hasDemo: game.hasDemo,
                 });
@@ -251,10 +271,16 @@ async function handleFetchWishlist(steamId: string) {
     state.loadingProgress = 0;
     state.loadingTotal = games.length;
     state.loadingMessage = t('loading_enriching');
+    state.hltbErrorCount = 0;
 
-    // Reset cancellation for HLTB phase - we always want to enrich whatever we found
+    // Keep skip/onStop for HLTB phase - we always want to enrich whatever we found
+    // and allowing users to skip if it hangs
     state.isCancelled = false;
-    state.onStop = undefined;
+    state.onStop = () => {
+      state.isCancelled = true;
+      state.loadingMessage = t('loading_stopping');
+      renderLoading(state);
+    };
 
     renderLoading(state);
 
@@ -284,15 +310,27 @@ async function handleFetchWishlist(steamId: string) {
 
     // Second pass: Fetch missing ones from API with batching/delay to be gentle
     const HLTB_BATCH_SIZE = 10;
+    let hltbHits = 0;
+    let hltbMisses = 0;
+
     for (let i = 0; i < gamesToFetch.length; i += HLTB_BATCH_SIZE) {
       if (state.isCancelled) break;
 
       const batch = gamesToFetch.slice(i, i + HLTB_BATCH_SIZE);
       await Promise.all(
         batch.map(async (game) => {
-          const result = await searchHLTB(game.name, () => state.isCancelled);
+          const { result, errorStatus, cacheStatus } = await searchHLTB(game.name, () => state.isCancelled);
           if (state.isCancelled) return;
-          await setCachedHLTB(game.name, result);
+
+          if (cacheStatus === 'HIT') hltbHits++;
+          else if (cacheStatus === 'MISS') hltbMisses++;
+
+          if (errorStatus && errorStatus >= 500) {
+            state.hltbErrorCount++;
+            // Don't cache 500s so we can retry next time
+          } else {
+            await setCachedHLTB(game.name, result);
+          }
 
           if (result) {
             game.hltbId = result.id;
@@ -312,6 +350,10 @@ async function handleFetchWishlist(steamId: string) {
       if (!state.isCancelled && i + HLTB_BATCH_SIZE < gamesToFetch.length) {
         await sleep(300);
       }
+    }
+
+    if (gamesToFetch.length > 0) {
+      console.log(`[HLTB Proxy Cache] Stats: HIT=${hltbHits}, MISS=${hltbMisses}`);
     }
 
     // 4) Done — show dashboard

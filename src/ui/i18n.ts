@@ -31,6 +31,7 @@ const translations: Record<Locale, Record<string, string>> = {
     dashboard_filter_all: 'All Categories',
     dashboard_sort_label: 'Sort by:',
     dashboard_match_info: 'HLTB data found for {found} / {total} games',
+    dashboard_hltb_warning: '⚠️ Some HLTB data could not be fetched due to server errors. Reload the page to try again.',
 
     stats_games: 'Games',
     stats_main: 'Main Story',
@@ -81,6 +82,7 @@ const translations: Record<Locale, Record<string, string>> = {
     game_demo_avail: 'Demo Avail.',
     game_added: 'Added {date}',
     game_free: 'Free',
+    game_unavailable: 'Unavailable',
     game_cached: '(cached)',
     game_price_na: 'Price N/A',
     game_no_hltb: 'No HLTB data',

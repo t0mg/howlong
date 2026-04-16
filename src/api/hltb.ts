@@ -32,23 +32,24 @@ export function formatDurationHours(seconds: number | null | undefined): number 
 export async function searchHLTB(
   gameName: string,
   checkCancelled?: () => boolean
-): Promise<HLTBResult | null> {
-  if (checkCancelled?.()) return null;
+): Promise<{ result: HLTBResult | null; errorStatus?: number; cacheStatus?: string | null }> {
+  if (checkCancelled?.()) return { result: null };
   try {
     const url = `${PROXY_BASE}/hltb/search?q=${encodeURIComponent(gameName)}&t=${Date.now()}`;
     const res = await fetch(url, { cache: 'no-cache' });
-    
+    const cacheStatus = res.headers.get('X-Cache-Status');
+
     if (!res.ok) {
       console.warn(`[HLTB] Search failed for "${gameName}": Status ${res.status}`);
-      return null;
+      return { result: null, errorStatus: res.status, cacheStatus };
     }
 
     const data: HLTBResult[] = await res.json();
-    if (!data || data.length === 0) return null;
+    if (!data || data.length === 0) return { result: null, cacheStatus };
 
-    return data[0];
+    return { result: data[0], cacheStatus };
   } catch (err) {
     console.error(`[HLTB] Error fetching "${gameName}":`, err);
-    return null;
+    return { result: null, errorStatus: 500 };
   }
 }

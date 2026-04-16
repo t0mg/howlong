@@ -65,6 +65,7 @@ export interface GameEntry {
   reviewPercent: number;
   genres: string[];
   isFree: boolean;
+  isUnavailable?: boolean;
   priority: number;
 
   // Price (may be null if free or not fetched)
@@ -81,7 +82,7 @@ export interface GameEntry {
 
   // Status
   hltbStatus: 'pending' | 'found' | 'not_found';
-  priceStatus: 'pending' | 'found' | 'not_found' | 'free' | 'stale';
+  priceStatus: 'pending' | 'found' | 'not_found' | 'free' | 'stale' | 'unavailable';
   isStale?: boolean;
   dateAdded: number;
 }
@@ -93,7 +94,9 @@ export interface CachedSteamData {
   priceInitial: number | null;
   discountPercent: number;
   genres: string[];
+  isFree?: boolean;
   isComingSoon?: boolean;
+  isUnavailable?: boolean;
   isDemo?: boolean;
   hasDemo?: boolean;
 }
@@ -135,6 +138,7 @@ export interface AppState {
   isThrottled: boolean;
   throttledUntil: number | null; // Timestamp
   regionId: string;
+  hltbErrorCount: number;
 }
 
 export interface SteamRegion {
@@ -147,7 +151,7 @@ export interface SteamRegion {
 
 export const REGION_MAP: Record<string, SteamRegion> = {
   'us': { id: 'us', name: 'United States ($)', cc: 'us', currency: 'USD', symbol: '$' },
-  'eu': { id: 'eu', name: 'European Union (€)', cc: 'be', currency: 'EUR', symbol: '€' },
+  'eu': { id: 'eu', name: 'European Union (€)', cc: 'fr', currency: 'EUR', symbol: '€' },
   'gb': { id: 'gb', name: 'United Kingdom (£)', cc: 'gb', currency: 'GBP', symbol: '£' },
   'ca': { id: 'ca', name: 'Canada ($)', cc: 'ca', currency: 'CAD', symbol: '$' },
   'au': { id: 'au', name: 'Australia ($)', cc: 'au', currency: 'AUD', symbol: '$' },
