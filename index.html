@@ -19,6 +19,212 @@
     <meta property="og:type" content="website" />
   </head>
   <body>
+    <template id="tpl-stat-card">
+      <div class="stat-card">
+        <span class="stat-icon"></span>
+        <span class="stat-value"></span>
+        <span class="stat-label"></span>
+      </div>
+    </template>
+
+    <template id="tpl-duration-bar">
+      <div class="duration-row">
+        <span class="duration-label"></span>
+        <div class="duration-bar-container">
+          <div class="duration-bar"></div>
+        </div>
+        <span class="duration-hours"></span>
+      </div>
+    </template>
+
+    <template id="tpl-game-card">
+      <div class="game-card">
+        <div class="game-card-img">
+          <img loading="lazy" width="460" height="215">
+        </div>
+        <div class="game-card-info">
+          <h3 class="game-name"></h3>
+          <span class="game-date"></span>
+          <div class="genre-chips"></div>
+          <div class="price-row"></div>
+          <div class="hltb-container"></div>
+          <div class="game-links">
+            <a target="_blank" rel="noopener" class="game-link steam-link">Steam</a>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template id="tpl-settings-modal">
+      <div class="modal-overlay">
+        <div class="modal-card">
+          <h2 class="modal-title">Settings</h2>
+          <p class="modal-desc">Manage your application preferences and local data.</p>
+
+          <div class="settings-item">
+            <div class="settings-item-info">
+              <span class="settings-item-label">Steam Store Region</span>
+              <p class="settings-item-desc">Select region for accurate local prices.</p>
+            </div>
+            <select class="btn-ghost" style="padding: 0.5rem;"></select>
+          </div>
+
+          <div class="settings-item">
+            <div class="settings-item-info">
+              <span class="settings-item-label">Clear HLTB Data</span>
+              <p class="settings-item-desc">Remove stored game durations and re-fetch.</p>
+            </div>
+            <button class="btn-primary btn-clear-hltb" style="background: var(--accent-secondary)">Clear HLTB</button>
+          </div>
+
+          <div class="settings-item">
+            <div class="settings-item-info">
+              <span class="settings-item-label">Clear Steam Game Data</span>
+              <p class="settings-item-desc">Remove cached metadata and re-fetch. Prices are fetched live.</p>
+            </div>
+            <button class="btn-primary btn-clear-steam" style="background: var(--accent-secondary)">Clear Steam</button>
+          </div>
+
+          <div class="settings-item">
+            <div class="settings-item-info">
+              <span class="settings-item-label">App Cache (Hard Reset)</span>
+              <p class="settings-item-desc">Unregister Service Worker and clear all internal databases. App will reload.</p>
+            </div>
+            <button class="btn-primary btn-hard-reset" style="background: var(--danger)">Full Reset</button>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn-ghost btn-close">Close</button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template id="tpl-stats-modal">
+      <div class="modal-overlay">
+        <div class="modal-card modal-card-wide">
+          <h2 class="modal-title">Wishlist Insights</h2>
+          <p class="modal-desc">A data-driven breakdown of your wishlist.</p>
+
+          <div class="stats-summary-grid"></div>
+
+          <div class="charts-container">
+            <div class="chart-box" id="chart-duration"></div>
+            <div class="chart-box" id="chart-price"></div>
+            <div class="chart-box" id="chart-genre"></div>
+            <div class="chart-box" id="chart-year"></div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn-ghost btn-close">Close</button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template id="tpl-landing">
+      <div class="landing">
+        <button class="btn-ghost landing-settings" id="settings-btn" title="Settings">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+        <div class="landing-logo">
+          <svg viewBox="0 0 64 64" width="80" height="80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="32" cy="32" r="30" stroke="url(#g1)" stroke-width="3" fill="none"/>
+            <path d="M32 14 A18 18 0 1 1 14 32" stroke="url(#g2)" stroke-width="3" stroke-linecap="round" fill="none"/>
+            <line x1="32" y1="32" x2="32" y2="20" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="32" y1="32" x2="42" y2="32" stroke="var(--accent-secondary)" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="32" cy="32" r="2.5" fill="var(--accent)"/>
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="64" y2="64">
+                <stop offset="0%" stop-color="var(--accent)"/>
+                <stop offset="100%" stop-color="var(--accent-secondary)"/>
+              </linearGradient>
+              <linearGradient id="g2" x1="0" y1="0" x2="64" y2="64">
+                <stop offset="0%" stop-color="var(--accent-secondary)"/>
+                <stop offset="100%" stop-color="var(--accent)"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <h1 class="landing-title">How Long to Clear</h1>
+        <p class="landing-subtitle">Find your next wishlisted game to play based on your time and budget.</p>
+        <form class="landing-form" id="steam-form">
+          <div class="input-group">
+            <input type="text" id="steam-id-input" placeholder="Enter your Steam64 ID (e.g. 76561198012345678)" autocomplete="off" spellcheck="false" required>
+            <button type="submit" id="fetch-btn" class="btn-primary">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <span>Fetch Wishlist</span>
+            </button>
+          </div>
+        </form>
+        <p class="help-text">Your Steam profile & wishlist must be <strong>public</strong>. Find your Steam64 ID at <a href="https://steamid.io" target="_blank" rel="noopener">steamid.io</a>. No user data is stored. <a href="https://github.com/t0mg/howlong">Project source</a>.</p>
+      </div>
+    </template>
+
+    <template id="tpl-loading">
+      <div class="loading-container">
+        <div class="spinner"></div>
+        <p class="loading-message"></p>
+        <div class="progress-area" style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;"></div>
+        <div class="throttled-area"></div>
+        <div class="actions-area"></div>
+      </div>
+    </template>
+
+    <template id="tpl-header">
+      <header class="dashboard-header">
+        <div class="header-left">
+          <h1 class="header-title">How Long to Clear</h1>
+          <span class="header-steam-id"></span>
+        </div>
+        <div class="header-actions">
+          <button class="btn-ghost" id="reset-btn">← Change Steam ID</button>
+          <button class="btn-ghost btn-insights" id="insights-btn" title="Insights">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.21 15.89A10 10 0 1 1 8 2.83M22 12A10 10 0 0 0 12 2v10z"/>
+            </svg>
+            <span>Insights</span>
+          </button>
+          <button class="btn-ghost" id="settings-btn" title="Settings">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+    </template>
+
+    <template id="tpl-stats-bar">
+      <div class="stats-bar"></div>
+    </template>
+
+    <template id="tpl-controls-container">
+      <div class="controls-container"></div>
+    </template>
+
+    <template id="tpl-filter-controls">
+      <div class="filter-controls">
+        <span class="sort-label">Filter:</span>
+        <select class="filter-select">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+    </template>
+
+    <template id="tpl-sort-controls">
+      <div class="sort-controls">
+        <span class="sort-label">Sort by:</span>
+      </div>
+    </template>
+
+    <template id="tpl-match-info">
+      <div class="match-info"></div>
+    </template>
+
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

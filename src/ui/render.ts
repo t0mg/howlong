@@ -4,15 +4,6 @@ import { sortGames, filterGames, computeStats } from './sort';
 import { prepareStats } from './stats';
 import { Chart } from 'frappe-charts';
 
-
-const SETTINGS_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-</svg>`;
-
-const CHART_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M21.21 15.89A10 10 0 1 1 8 2.83M22 12A10 10 0 0 0 12 2v10z"/>
-</svg>`;
-
 // ── DOM Helpers ──────────────────────────────────────────────
 
 function $(selector: string): HTMLElement {
@@ -45,78 +36,26 @@ export function renderLanding(
   const app = $('#app');
   app.innerHTML = '';
 
-  const container = el('div', { class: 'landing' });
+  const template = document.getElementById('tpl-landing') as HTMLTemplateElement;
+  const clone = template.content.cloneNode(true) as DocumentFragment;
+  const container = clone.firstElementChild as HTMLElement;
 
-  // Settings Gear
-  const settingsBtn = el('button', { class: 'btn-ghost landing-settings', id: 'settings-btn', title: 'Settings' });
-  settingsBtn.innerHTML = SETTINGS_ICON;
+  const settingsBtn = container.querySelector('#settings-btn') as HTMLButtonElement;
   settingsBtn.addEventListener('click', onSettings);
-  container.appendChild(settingsBtn);
 
-  const logo = el('div', { class: 'landing-logo' });
-  logo.innerHTML = `
-    <svg viewBox="0 0 64 64" width="80" height="80" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="32" cy="32" r="30" stroke="url(#g1)" stroke-width="3" fill="none"/>
-      <path d="M32 14 A18 18 0 1 1 14 32" stroke="url(#g2)" stroke-width="3" stroke-linecap="round" fill="none"/>
-      <line x1="32" y1="32" x2="32" y2="20" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="32" y1="32" x2="42" y2="32" stroke="var(--accent-secondary)" stroke-width="2" stroke-linecap="round"/>
-      <circle cx="32" cy="32" r="2.5" fill="var(--accent)"/>
-      <defs>
-        <linearGradient id="g1" x1="0" y1="0" x2="64" y2="64">
-          <stop offset="0%" stop-color="var(--accent)"/>
-          <stop offset="100%" stop-color="var(--accent-secondary)"/>
-        </linearGradient>
-        <linearGradient id="g2" x1="0" y1="0" x2="64" y2="64">
-          <stop offset="0%" stop-color="var(--accent-secondary)"/>
-          <stop offset="100%" stop-color="var(--accent)"/>
-        </linearGradient>
-      </defs>
-    </svg>
-  `;
-
-  const title = el('h1', { class: 'landing-title' }, 'How Long to Clear');
-  const subtitle = el('p', { class: 'landing-subtitle' },
-    'Find your next wishlisted game to play based on your time and budget.'
-  );
-
-  const form = el('form', { class: 'landing-form', id: 'steam-form' });
-  const inputGroup = el('div', { class: 'input-group' });
-
-  const input = el('input', {
-    type: 'text',
-    id: 'steam-id-input',
-    placeholder: 'Enter your Steam64 ID (e.g. 76561198012345678)',
-    autocomplete: 'off',
-    spellcheck: 'false',
-    required: '',
-  });
-
-  const btn = el('button', { type: 'submit', id: 'fetch-btn', class: 'btn-primary' });
-  btn.innerHTML = `
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-    </svg>
-    <span>Fetch Wishlist</span>
-  `;
-
-  inputGroup.append(input, btn);
-  form.appendChild(inputGroup);
-
-  const helpText = el('p', { class: 'help-text' });
-  helpText.innerHTML = `Your Steam profile & wishlist must be <strong>public</strong>. Find your Steam64 ID at <a href="https://steamid.io" target="_blank" rel="noopener">steamid.io</a>. No user data is stored. <a href="https://github.com/t0mg/howlong">Project source</a>.`;
+  const form = container.querySelector('#steam-form') as HTMLFormElement;
+  const input = container.querySelector('#steam-id-input') as HTMLInputElement;
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const val = (input as HTMLInputElement).value.trim();
+    const val = input.value.trim();
     if (val) onSubmit(val);
   });
 
-  // Restore last used Steam ID
-  if (initialSteamId) (input as HTMLInputElement).value = initialSteamId;
+  if (initialSteamId) input.value = initialSteamId;
 
-  container.append(logo, title, subtitle, form, helpText);
   app.appendChild(container);
-  (input as HTMLInputElement).focus();
+  input.focus();
 }
 
 // ── Loading State ────────────────────────────────────────────
@@ -127,14 +66,9 @@ export function renderLoading(state: AppState): void {
 
   if (!container) {
     app.innerHTML = '';
-    container = el('div', { class: 'loading-container' });
-    container.append(
-      el('div', { class: 'spinner' }),
-      el('p', { class: 'loading-message' }),
-      el('div', { class: 'progress-area', style: 'width: 100%; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;' }),
-      el('div', { class: 'throttled-area' }),
-      el('div', { class: 'actions-area' })
-    );
+    const template = document.getElementById('tpl-loading') as HTMLTemplateElement;
+    const clone = template.content.cloneNode(true) as DocumentFragment;
+    container = clone.firstElementChild as HTMLElement;
     app.appendChild(container);
   }
 
@@ -148,11 +82,12 @@ export function renderLoading(state: AppState): void {
     let label = progressArea.querySelector('.progress-label') as HTMLElement;
 
     if (!progress) {
-      progressArea.innerHTML = '';
-      progress = el('div', { class: 'progress-bar' });
-      progress.appendChild(el('div', { class: 'progress-fill' }));
-      label = el('p', { class: 'progress-label' });
-      progressArea.append(progress, label);
+      progressArea.innerHTML = `
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+        <p class="progress-label"></p>
+      `;
+      progress = progressArea.querySelector('.progress-bar') as HTMLElement;
+      label = progressArea.querySelector('.progress-label') as HTMLElement;
     }
 
     const fill = progress.querySelector('.progress-fill') as HTMLElement;
@@ -171,18 +106,18 @@ export function renderLoading(state: AppState): void {
 
     let alert = throttledArea.querySelector('.throttled-alert');
     if (!alert) {
-      throttledArea.innerHTML = '';
-      alert = el('div', { class: 'throttled-alert' });
-      alert.append(
-        el('span', { class: 'throttled-icon' }, '⚠️'),
-        el('div', { class: 'throttled-text' },
-          el('span', { class: 'throttled-title' }, 'Steam is throttling requests'),
-          el('span', { class: 'throttled-timer' })
-        )
-      );
-      throttledArea.appendChild(alert);
+      throttledArea.innerHTML = `
+        <div class="throttled-alert">
+          <span class="throttled-icon">⚠️</span>
+          <div class="throttled-text">
+            <span class="throttled-title">Steam is throttling requests</span>
+            <span class="throttled-timer"></span>
+          </div>
+        </div>
+      `;
+      alert = throttledArea.querySelector('.throttled-alert');
     }
-    alert.querySelector('.throttled-timer')!.textContent = `Waiting ${timeStr}...`;
+    alert!.querySelector('.throttled-timer')!.textContent = `Waiting ${timeStr}...`;
   } else {
     throttledArea.innerHTML = '';
   }
@@ -190,12 +125,11 @@ export function renderLoading(state: AppState): void {
   const actionsArea = container.querySelector('.actions-area')!;
   if (state.onStop) {
     if (!actionsArea.querySelector('.btn-stop')) {
-      actionsArea.innerHTML = '';
-      const stopBtn = el('button', { class: 'btn-stop' }, 'Stop & Show Results');
+      actionsArea.innerHTML = '<button class="btn-stop">Stop & Show Results</button>';
+      const stopBtn = actionsArea.querySelector('.btn-stop') as HTMLButtonElement;
       stopBtn.addEventListener('click', () => {
         if (state.onStop) state.onStop();
       });
-      actionsArea.appendChild(stopBtn);
     }
   } else {
     actionsArea.innerHTML = '';
@@ -258,26 +192,16 @@ function renderHeader(
   onSettings: () => void,
   onInsights: () => void
 ): HTMLElement {
-  const header = el('header', { class: 'dashboard-header' });
-  const headerLeft = el('div', { class: 'header-left' });
-  const headerTitle = el('h1', { class: 'header-title' }, 'How Long to Clear');
-  const headerSteamId = el('span', { class: 'header-steam-id' }, `Steam: ${state.steamId}`);
-  headerLeft.append(headerTitle, headerSteamId);
+  const template = document.getElementById('tpl-header') as HTMLTemplateElement;
+  const clone = template.content.cloneNode(true) as DocumentFragment;
+  const header = clone.firstElementChild as HTMLElement;
 
-  const resetBtn = el('button', { class: 'btn-ghost', id: 'reset-btn' }, '← Change Steam ID');
-  resetBtn.addEventListener('click', onReset);
+  header.querySelector('.header-steam-id')!.textContent = `Steam: ${state.steamId}`;
 
-  const insightsBtn = el('button', { class: 'btn-ghost btn-insights', id: 'insights-btn', title: 'Insights' });
-  insightsBtn.innerHTML = CHART_ICON + '<span>Insights</span>';
-  insightsBtn.addEventListener('click', onInsights);
+  header.querySelector('#reset-btn')!.addEventListener('click', onReset);
+  header.querySelector('#insights-btn')!.addEventListener('click', onInsights);
+  header.querySelector('#settings-btn')!.addEventListener('click', onSettings);
 
-  const settingsBtn = el('button', { class: 'btn-ghost', id: 'settings-btn', title: 'Settings' });
-  settingsBtn.innerHTML = SETTINGS_ICON;
-
-  settingsBtn.addEventListener('click', onSettings);
-
-  const actions = el('div', { class: 'header-actions' }, resetBtn, insightsBtn, settingsBtn);
-  header.append(headerLeft, actions);
   return header;
 }
 
@@ -285,7 +209,9 @@ function renderStatsBar(
   stats: ReturnType<typeof computeStats>,
   currency: string
 ): HTMLElement {
-  const statsBar = el('div', { class: 'stats-bar' });
+  const template = document.getElementById('tpl-stats-bar') as HTMLTemplateElement;
+  const clone = template.content.cloneNode(true) as DocumentFragment;
+  const statsBar = clone.firstElementChild as HTMLElement;
   statsBar.append(
     createStatCard('🎮', 'Games', `${stats.totalGames}`),
     createStatCard('⏱️', 'Main Story', `${formatHours(stats.totalMainHours)}`),
@@ -302,7 +228,9 @@ function renderFilterAndSort(
   onSort: (field: SortField) => void,
   onFilter: (category: string | null) => void
 ): HTMLElement {
-  const container = el('div', { class: 'controls-container' });
+  const template = document.getElementById('tpl-controls-container') as HTMLTemplateElement;
+  const clone = template.content.cloneNode(true) as DocumentFragment;
+  const container = clone.firstElementChild as HTMLElement;
   container.append(
     renderFilterControls(state, onFilter),
     renderSortControls(state, onSort)
@@ -314,9 +242,9 @@ function renderFilterControls(
   state: AppState,
   onFilter: (category: string | null) => void
 ): HTMLElement {
-  const controls = el('div', { class: 'filter-controls' });
-  const filterLabel = el('span', { class: 'sort-label' }, 'Filter:');
-  controls.appendChild(filterLabel);
+  const template = document.getElementById('tpl-filter-controls') as HTMLTemplateElement;
+  const clone = template.content.cloneNode(true) as DocumentFragment;
+  const controls = clone.firstElementChild as HTMLElement;
 
   const genres = new Set<string>();
   state.games.forEach(g => {
@@ -327,8 +255,8 @@ function renderFilterControls(
 
   const sortedGenres = Array.from(genres).sort();
 
-  const select = el('select', { class: `filter-select ${state.filterCategory ? 'active' : ''}` });
-  select.appendChild(el('option', { value: '' }, 'All Categories'));
+  const select = controls.querySelector('select') as HTMLSelectElement;
+  if (state.filterCategory) select.classList.add('active');
 
   sortedGenres.forEach(genre => {
     const opt = el('option', { value: genre }, genre);
@@ -342,7 +270,6 @@ function renderFilterControls(
     onFilter(select.value || null);
   });
 
-  controls.appendChild(select);
   return controls;
 }
 
@@ -350,10 +277,9 @@ function renderSortControls(
   state: AppState,
   onSort: (field: SortField) => void
 ): HTMLElement {
-
-  const controls = el('div', { class: 'sort-controls' });
-  const sortLabel = el('span', { class: 'sort-label' }, 'Sort by:');
-  controls.appendChild(sortLabel);
+  const template = document.getElementById('tpl-sort-controls') as HTMLTemplateElement;
+  const clone = template.content.cloneNode(true) as DocumentFragment;
+  const controls = clone.firstElementChild as HTMLElement;
 
   const sortOptions: { value: SortField; label: string }[] = [
     { value: 'priority', label: 'Priority' },
@@ -388,7 +314,9 @@ function renderSortControls(
 }
 
 function renderMatchInfo(stats: ReturnType<typeof computeStats>): HTMLElement {
-  const matchInfo = el('div', { class: 'match-info' });
+  const template = document.getElementById('tpl-match-info') as HTMLTemplateElement;
+  const clone = template.content.cloneNode(true) as DocumentFragment;
+  const matchInfo = clone.firstElementChild as HTMLElement;
   matchInfo.textContent = `HLTB data found for ${stats.gamesWithHltb} / ${stats.totalGames} games`;
   return matchInfo;
 }
@@ -409,94 +337,54 @@ export function renderSettingsModal(
   onClose: () => void,
   currentRegionId: string
 ): void {
-  const overlay = el('div', { class: 'modal-overlay' });
-  const card = el('div', { class: 'modal-card' });
-
-  const title = el('h2', { class: 'modal-title' }, 'Settings');
-  const desc = el('p', { class: 'modal-desc' }, 'Manage your application preferences and local data.');
+  const template = document.getElementById('tpl-settings-modal') as HTMLTemplateElement;
+  const clone = template.content.cloneNode(true) as DocumentFragment;
+  const overlay = clone.firstElementChild as HTMLElement;
 
   const close = () => {
     onClose();
     overlay.remove();
   };
 
-  // Region Selection
-  const regionSection = el('div', { class: 'settings-item' });
-  const regionInfo = el('div', { class: 'settings-item-info' });
-  const regionLabel = el('span', { class: 'settings-item-label' }, 'Steam Store Region');
-  const regionDesc = el('p', { class: 'settings-item-desc' }, 'Select region for accurate local prices.');
-  regionInfo.append(regionLabel, regionDesc);
-
-  const select = el('select', { class: 'btn-ghost', style: 'padding: 0.5rem;' }) as HTMLSelectElement;
+  const select = overlay.querySelector('select') as HTMLSelectElement;
   Object.values(REGION_MAP).forEach(r => {
     select.append(el('option', { value: r.id, ...(currentRegionId === r.id ? { selected: '' } : {}) }, r.name));
   });
-
   select.addEventListener('change', () => onRegionChange(select.value));
 
-  regionSection.append(regionInfo, select);
-
-  // HLTB Cache
-  const hltbSection = el('div', { class: 'settings-item' });
-  const hltbInfo = el('div', { class: 'settings-item-info' });
-  const hltbLabel = el('span', { class: 'settings-item-label' }, 'Clear HLTB Data');
-  const hltbDesc = el('p', { class: 'settings-item-desc' }, 'Remove stored game durations and re-fetch.');
-  hltbInfo.append(hltbLabel, hltbDesc);
-
-  const hltbBtn = el('button', { class: 'btn-primary', style: 'background: var(--accent-secondary)' }, 'Clear HLTB');
+  const hltbBtn = overlay.querySelector('.btn-clear-hltb') as HTMLButtonElement;
   hltbBtn.addEventListener('click', () => {
     onClearHLTB();
     hltbBtn.textContent = 'Cleared!';
     hltbBtn.style.opacity = '0.7';
     hltbBtn.disabled = true;
   });
-  hltbSection.append(hltbInfo, hltbBtn);
 
-  // Steam Cache
-  const steamSection = el('div', { class: 'settings-item' });
-  const steamInfo = el('div', { class: 'settings-item-info' });
-  const steamLabel = el('span', { class: 'settings-item-label' }, 'Clear Steam Game Data');
-  const steamDesc = el('p', { class: 'settings-item-desc' }, 'Remove cached metadata and re-fetch. Prices are fetched live.');
-  steamInfo.append(steamLabel, steamDesc);
-
-  const steamBtn = el('button', { class: 'btn-primary', style: 'background: var(--accent-secondary)' }, 'Clear Steam');
+  const steamBtn = overlay.querySelector('.btn-clear-steam') as HTMLButtonElement;
   steamBtn.addEventListener('click', () => {
     onClearSteam();
     steamBtn.textContent = 'Cleared!';
     steamBtn.style.opacity = '0.7';
     steamBtn.disabled = true;
   });
-  steamSection.append(steamInfo, steamBtn);
 
-  // Hard Reset
-  const appSection = el('div', { class: 'settings-item' });
-  const appInfo = el('div', { class: 'settings-item-info' });
-  const appLabel = el('span', { class: 'settings-item-label' }, 'App Cache (Hard Reset)');
-  const appDesc = el('p', { class: 'settings-item-desc' }, 'Unregister Service Worker and clear all internal databases. App will reload.');
-  appInfo.append(appLabel, appDesc);
-
-  const appBtn = el('button', { class: 'btn-primary', style: 'background: var(--danger)' }, 'Full Reset');
+  const appBtn = overlay.querySelector('.btn-hard-reset') as HTMLButtonElement;
   appBtn.addEventListener('click', () => {
     if (confirm('Are you sure? This will wipe ALL cached data and settings.')) {
       onHardReset();
       overlay.remove();
     }
   });
-  appSection.append(appInfo, appBtn);
 
-  const footer = el('div', { class: 'modal-footer' });
-  const closeBtn = el('button', { class: 'btn-ghost' }, 'Close');
+  const closeBtn = overlay.querySelector('.btn-close') as HTMLButtonElement;
   closeBtn.addEventListener('click', close);
-  footer.append(closeBtn);
-
-  card.append(title, desc, regionSection, hltbSection, steamSection, appSection, footer);
-  overlay.appendChild(card);
-  document.body.appendChild(overlay);
 
   // Close on backdrop click
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) close();
   });
+
+  document.body.appendChild(overlay);
 }
 
 export function renderStatsModal(
@@ -504,11 +392,9 @@ export function renderStatsModal(
   currency: string,
   onClose: () => void
 ): void {
-  const overlay = el('div', { class: 'modal-overlay' });
-  const card = el('div', { class: 'modal-card modal-card-wide' });
-
-  const title = el('h2', { class: 'modal-title' }, 'Wishlist Insights');
-  const desc = el('p', { class: 'modal-desc' }, 'A data-driven breakdown of your wishlist.');
+  const template = document.getElementById('tpl-stats-modal') as HTMLTemplateElement;
+  const clone = template.content.cloneNode(true) as DocumentFragment;
+  const overlay = clone.firstElementChild as HTMLElement;
 
   const close = () => {
     onClose();
@@ -517,8 +403,7 @@ export function renderStatsModal(
 
   const data = prepareStats(games);
 
-  // Stats Grid
-  const statsGrid = el('div', { class: 'stats-summary-grid' });
+  const statsGrid = overlay.querySelector('.stats-summary-grid') as HTMLElement;
   statsGrid.append(
     createStatCard('⏳', 'Avg. Price/Hr', formatCurrency(data.insights.avgPricePerHour, currency)),
     createStatCard('📅', 'Oldest Entry', String(data.insights.oldestItemYear)),
@@ -526,23 +411,14 @@ export function renderStatsModal(
     createStatCard('⚡', 'Total Story', formatHours(data.insights.totalPotentialHours))
   );
 
-  // Charts Container
-  const chartsContainer = el('div', { class: 'charts-container' });
+  const durationChartEl = overlay.querySelector('#chart-duration') as HTMLElement;
+  const priceChartEl = overlay.querySelector('#chart-price') as HTMLElement;
+  const genreChartEl = overlay.querySelector('#chart-genre') as HTMLElement;
+  const yearChartEl = overlay.querySelector('#chart-year') as HTMLElement;
 
-  const durationChartEl = el('div', { class: 'chart-box', id: 'chart-duration' });
-  const priceChartEl = el('div', { class: 'chart-box', id: 'chart-price' });
-  const genreChartEl = el('div', { class: 'chart-box', id: 'chart-genre' });
-  const yearChartEl = el('div', { class: 'chart-box', id: 'chart-year' });
-
-  chartsContainer.append(durationChartEl, priceChartEl, genreChartEl, yearChartEl);
-
-  const footer = el('div', { class: 'modal-footer' });
-  const closeBtn = el('button', { class: 'btn-ghost' }, 'Close');
+  const closeBtn = overlay.querySelector('.btn-close') as HTMLButtonElement;
   closeBtn.addEventListener('click', close);
-  footer.append(closeBtn);
 
-  card.append(title, desc, statsGrid, chartsContainer, footer);
-  overlay.appendChild(card);
   document.body.appendChild(overlay);
 
   // Initialize charts after appending to DOM
@@ -591,27 +467,26 @@ export function renderStatsModal(
 
 // ── Components ───────────────────────────────────────────────
 
-function createStatCard(icon: string, label: string, value: string) {
-  return el('div', { class: 'stat-card' },
-    el('span', { class: 'stat-icon' }, icon),
-    el('span', { class: 'stat-value' }, value),
-    el('span', { class: 'stat-label' }, label)
-  );
+function createStatCard(icon: string, label: string, value: string): HTMLElement {
+  const template = document.getElementById('tpl-stat-card') as HTMLTemplateElement;
+  const clone = template.content.cloneNode(true) as DocumentFragment;
+  const root = clone.firstElementChild as HTMLElement;
+  root.querySelector('.stat-icon')!.textContent = icon;
+  root.querySelector('.stat-value')!.textContent = value;
+  root.querySelector('.stat-label')!.textContent = label;
+  return root;
 }
 
 function createGameCard(game: GameEntry, currency: string): HTMLElement {
-  const card = el('div', { class: 'game-card' });
+  const template = document.getElementById('tpl-game-card') as HTMLTemplateElement;
+  const clone = template.content.cloneNode(true) as DocumentFragment;
+  const card = clone.firstElementChild as HTMLElement;
 
   // Cover image
-  const imgContainer = el('div', { class: 'game-card-img' });
-  const img = el('img', {
-    src: game.capsuleUrl,
-    alt: game.name,
-    loading: 'lazy',
-    width: '460',
-    height: '215',
-  });
-  imgContainer.appendChild(img);
+  const imgContainer = card.querySelector('.game-card-img') as HTMLElement;
+  const img = imgContainer.querySelector('img') as HTMLImageElement;
+  img.src = game.capsuleUrl;
+  img.alt = game.name;
 
   // Discount badge
   if (game.discountPercent > 0) {
@@ -619,29 +494,25 @@ function createGameCard(game: GameEntry, currency: string): HTMLElement {
     imgContainer.appendChild(badge);
   }
 
-  card.appendChild(imgContainer);
-
   // Info section
-  const info = el('div', { class: 'game-card-info' });
-
-  const name = el('h3', { class: 'game-name' }, game.name);
-  info.appendChild(name);
+  const info = card.querySelector('.game-card-info') as HTMLElement;
+  info.querySelector('.game-name')!.textContent = game.name;
 
   const dateStr = formatDate(game.dateAdded);
-  const dateEl = el('span', { class: 'game-date' }, `Added ${dateStr}`);
-  info.appendChild(dateEl);
+  info.querySelector('.game-date')!.textContent = `Added ${dateStr}`;
 
   // Genres
+  const chips = info.querySelector('.genre-chips') as HTMLElement;
   if (game.genres && game.genres.length > 0) {
-    const chips = el('div', { class: 'genre-chips' });
     game.genres.slice(0, 5).forEach(tag => {
       chips.appendChild(el('span', { class: 'genre-chip' }, tag));
     });
-    info.appendChild(chips);
+  } else {
+    chips.remove();
   }
 
   // Price
-  const priceRow = el('div', { class: 'price-row' });
+  const priceRow = info.querySelector('.price-row') as HTMLElement;
   if (game.isFree) {
     priceRow.appendChild(el('span', { class: 'price-free' }, 'Free'));
   } else if (game.priceStatus === 'stale') {
@@ -661,9 +532,9 @@ function createGameCard(game: GameEntry, currency: string): HTMLElement {
   } else {
     priceRow.appendChild(el('span', { class: 'price-unknown' }, 'Price N/A'));
   }
-  info.appendChild(priceRow);
 
   // HLTB bars
+  const hltbContainer = info.querySelector('.hltb-container') as HTMLElement;
   if (game.hltbStatus === 'found') {
     const hltb = el('div', { class: 'hltb-section' });
 
@@ -677,26 +548,19 @@ function createGameCard(game: GameEntry, currency: string): HTMLElement {
       hltb.appendChild(createDurationBar('100%', game.hltbCompletionist, game, 'comp'));
     }
 
-    info.appendChild(hltb);
+    hltbContainer.replaceWith(hltb);
   } else if (game.hltbStatus === 'not_found') {
     const noData = el('div', { class: 'hltb-no-data' }, 'No HLTB data');
-    info.appendChild(noData);
+    hltbContainer.replaceWith(noData);
   } else {
     const pending = el('div', { class: 'hltb-pending' }, 'Looking up...');
-    info.appendChild(pending);
+    hltbContainer.replaceWith(pending);
   }
 
   // Links
-  const links = el('div', { class: 'game-links' });
-
-  const steamLink = el('a', {
-    href: `https://store.steampowered.com/app/${game.appId}`,
-    target: '_blank',
-    rel: 'noopener',
-    class: 'game-link steam-link',
-  }, 'Steam');
-
-  links.appendChild(steamLink);
+  const links = info.querySelector('.game-links') as HTMLElement;
+  const steamLink = links.querySelector('.steam-link') as HTMLAnchorElement;
+  steamLink.href = `https://store.steampowered.com/app/${game.appId}`;
 
   if (game.hltbId) {
     const hltbLink = el('a', {
@@ -708,9 +572,6 @@ function createGameCard(game: GameEntry, currency: string): HTMLElement {
     links.appendChild(hltbLink);
   }
 
-  info.appendChild(links);
-  card.appendChild(info);
-
   return card;
 }
 
@@ -720,20 +581,23 @@ function createDurationBar(
   _game: GameEntry,
   type: 'main' | 'extra' | 'comp'
 ): HTMLElement {
-  const row = el('div', { class: 'duration-row' });
-  const labelEl = el('span', { class: 'duration-label' }, label);
-  const barContainer = el('div', { class: 'duration-bar-container' });
-  const bar = el('div', { class: `duration-bar duration-bar-${type}` });
+  const template = document.getElementById('tpl-duration-bar') as HTMLTemplateElement;
+  const clone = template.content.cloneNode(true) as DocumentFragment;
+  const root = clone.firstElementChild as HTMLElement;
 
+  root.querySelector('.duration-label')!.textContent = label;
+
+  const bar = root.querySelector('.duration-bar') as HTMLElement;
+  bar.classList.add(`duration-bar-${type}`);
   // Max bar width based on 200 hours
   const pct = Math.min((hours / 200) * 100, 100);
   bar.style.width = `${pct}%`;
 
-  barContainer.appendChild(bar);
+  const hoursEl = root.querySelector('.duration-hours') as HTMLElement;
+  hoursEl.setAttribute('data-value', hours.toString());
+  hoursEl.textContent = formatHours(hours);
 
-  const hoursEl = el('span', { class: 'duration-hours', 'data-value': hours.toString() }, formatHours(hours));
-  row.append(labelEl, barContainer, hoursEl);
-  return row;
+  return root;
 }
 
 // ── Formatting ───────────────────────────────────────────────
