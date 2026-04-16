@@ -8,9 +8,9 @@ import { view } from './template';
 
 // ── DOM Helpers ──────────────────────────────────────────────
 
-function $(selector: string): HTMLElement {
-  return document.querySelector(selector)!;
-}
+const $ = (s: string) => document.querySelector(s) as HTMLElement;
+
+let activeGridObserver: IntersectionObserver | null = null;
 
 // ── Landing Page ─────────────────────────────────────────────
 
@@ -270,8 +270,47 @@ function renderMatchInfo(stats: ReturnType<typeof computeStats>): HTMLElement {
 }
 
 function renderGameGrid(sortedGames: GameEntry[], currency: string): HTMLElement {
+  if (activeGridObserver) activeGridObserver.disconnect();
+
   const { element, refs } = view<{ container: HTMLElement }>('tpl-grid');
-  sortedGames.forEach(game => refs.container.appendChild(createGameCard(game, currency)));
+  const container = refs.container;
+  
+  const BATCH_SIZE = 60;
+  let cursor = 0;
+
+  const sentinel = document.createElement('div');
+  sentinel.className = 'grid-sentinel';
+  sentinel.innerHTML = '<div class="spinner spinner-small"></div>';
+  container.appendChild(sentinel);
+
+  const renderNextBatch = () => {
+    const end = Math.min(cursor + BATCH_SIZE, sortedGames.length);
+    const fragment = document.createDocumentFragment();
+    
+    for (; cursor < end; cursor++) {
+      fragment.appendChild(createGameCard(sortedGames[cursor], currency));
+    }
+    
+    container.insertBefore(fragment, sentinel);
+    
+    if (cursor >= sortedGames.length) {
+      sentinel.remove();
+      if (activeGridObserver) activeGridObserver.disconnect();
+    }
+  };
+
+  // Initial render
+  renderNextBatch();
+
+  if (cursor < sortedGames.length) {
+    activeGridObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        renderNextBatch();
+      }
+    }, { rootMargin: '400px' });
+    activeGridObserver.observe(sentinel);
+  }
+
   return element;
 }
 
