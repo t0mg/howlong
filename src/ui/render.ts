@@ -613,11 +613,22 @@ function createGameCard(game: GameEntry, currency: string): HTMLElement {
   });
   imgContainer.appendChild(img);
 
-  // Discount badge
-  if (game.discountPercent > 0) {
-    const badge = el('div', { class: 'discount-badge' }, `-${game.discountPercent}%`);
-    imgContainer.appendChild(badge);
+  // Badges (Top Left)
+  const badgeContainer = el('div', { class: 'game-card-badges' });
+  
+  if (game.isComingSoon) {
+    badgeContainer.appendChild(el('div', { class: 'status-badge badge-coming-soon' }, 'Coming Soon'));
+  } else if (game.isDemo) {
+    badgeContainer.appendChild(el('div', { class: 'status-badge badge-demo' }, 'Demo'));
+  } else if (game.hasDemo) {
+    badgeContainer.appendChild(el('div', { class: 'status-badge badge-demo-avail' }, 'Demo Avail.'));
   }
+
+  if (game.discountPercent > 0) {
+    badgeContainer.appendChild(el('div', { class: 'discount-badge' }, `-${game.discountPercent}%` ));
+  }
+  
+  imgContainer.appendChild(badgeContainer);
 
   card.appendChild(imgContainer);
 
@@ -642,7 +653,9 @@ function createGameCard(game: GameEntry, currency: string): HTMLElement {
 
   // Price
   const priceRow = el('div', { class: 'price-row' });
-  if (game.isFree) {
+  if (game.isComingSoon) {
+    priceRow.appendChild(el('span', { class: 'price-status' }, 'Coming Soon'));
+  } else if (game.isFree || game.isDemo) {
     priceRow.appendChild(el('span', { class: 'price-free' }, 'Free'));
   } else if (game.priceStatus === 'stale') {
     if (game.discountPercent > 0 && game.priceInitial !== null) {

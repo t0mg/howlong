@@ -118,8 +118,13 @@ async function handleFetchWishlist(steamId: string) {
 
           // Try to get from local cache first
           const cached = await getCachedSteam(appIdStr);
+          // Metadata is stale if new status fields are missing entirely (migration)
+          // Fallback results aren't in the disk cache, so they naturally retry on reload
+          const isMetadataStale = !cached || 
+            cached.isComingSoon === undefined || 
+            cached.hasDemo === undefined;
 
-          if (cached) {
+          if (cached && !isMetadataStale) {
             const priceData = priceMap[appIdStr]?.success ? priceMap[appIdStr].data?.price_overview : null;
 
             // Prefer cached metadata, update prices if we fetched them
@@ -128,10 +133,10 @@ async function handleFetchWishlist(steamId: string) {
               name: cached.name,
               capsuleUrl: cached.capsuleUrl,
               releaseDate: '',
-              reviewDesc: '',
-              reviewPercent: 0,
-              genres: cached.genres || [],
-              isFree: priceData ? false : (cached.priceFinal === null && cached.priceInitial === null),
+              isComingSoon: !!cached.isComingSoon,
+              isDemo: !!cached.isDemo,
+              hasDemo: !!cached.hasDemo,
+              isFree: priceData ? false : (cached.priceFinal === null && cached.priceInitial === null && !cached.isComingSoon),
               priority: item.priority || 999,
               priceCurrency: priceData?.currency || null,
               priceInitial: priceData ? priceData.initial / 100 : cached.priceInitial,
@@ -145,6 +150,9 @@ async function handleFetchWishlist(steamId: string) {
               priceStatus: priceData ? 'found' : (cached.priceFinal === null ? 'free' : 'stale'),
               isStale: !priceData && cached.priceFinal !== null,
               dateAdded: item.date_added,
+              reviewDesc: '',
+              reviewPercent: 0,
+              genres: cached.genres || [],
             });
 
             // Re-cache with updated prices if available
@@ -156,6 +164,9 @@ async function handleFetchWishlist(steamId: string) {
                 priceFinal: priceData.final / 100,
                 discountPercent: priceData.discount_percent,
                 genres: cached.genres || [],
+                isComingSoon: cached.isComingSoon,
+                isDemo: cached.isDemo,
+                hasDemo: cached.hasDemo,
               });
             }
           } else {
@@ -175,7 +186,10 @@ async function handleFetchWishlist(steamId: string) {
                 reviewDesc: '',
                 reviewPercent: 0,
                 genres: data.genres?.map(g => g.description) || [],
-                isFree: data.type === 'free' || (!priceData && data.type !== 'dlc'),
+                isComingSoon: !!data.release_date?.coming_soon,
+                isDemo: data.type === 'demo',
+                hasDemo: !!(data.demos && data.demos.length > 0),
+                isFree: data.is_free || data.type === 'free' || (!priceData && data.type !== 'dlc' && !data.release_date?.coming_soon),
                 priority: item.priority || 999,
                 priceCurrency: priceData?.currency || null,
                 priceInitial: priceData ? priceData.initial / 100 : null,
@@ -186,19 +200,25 @@ async function handleFetchWishlist(steamId: string) {
                 hltbMainExtra: null,
                 hltbCompletionist: null,
                 hltbStatus: 'pending',
-                priceStatus: priceData ? 'found' : (data.type === 'free' ? 'free' : 'not_found'),
+                priceStatus: priceData ? 'found' : ((data.is_free || data.type === 'free') ? 'free' : 'not_found'),
                 dateAdded: item.date_added,
               };
 
-              // Local cache for future sessions
-              await setCachedSteam(appIdStr, {
-                name: game.name,
-                capsuleUrl: game.capsuleUrl,
-                priceInitial: game.priceInitial,
-                priceFinal: game.priceFinal,
-                discountPercent: game.discountPercent,
-                genres: game.genres,
-              });
+              // Local cache for future sessions - ONLY if it was official data (not fallback)
+              const isFallback = !!metaRes[appIdStr]._is_fallback;
+              if (!isFallback) {
+                await setCachedSteam(appIdStr, {
+                  name: game.name,
+                  capsuleUrl: game.capsuleUrl,
+                  priceInitial: game.priceInitial,
+                  priceFinal: game.priceFinal,
+                  discountPercent: game.discountPercent,
+                  genres: game.genres,
+                  isComingSoon: game.isComingSoon,
+                  isDemo: game.isDemo,
+                  hasDemo: game.hasDemo,
+                });
+              }
 
               games.push(game);
             }

@@ -13,14 +13,18 @@ export interface SteamWishlistItem {
 export interface SteamAppDetailsResponse {
   [appId: string]: {
     success: boolean;
+    _is_fallback?: boolean;
     data?: {
       name: string;
       header_image: string;
+      is_free?: boolean;
+      type: string;
       price_overview?: SteamPriceOverview;
       release_date?: {
+        coming_soon: boolean;
         date: string;
       };
-      type: string;
+      demos?: { appid: number }[];
       genres?: { id: string; description: string }[];
     };
   };
@@ -54,6 +58,9 @@ export interface GameEntry {
   name: string;
   capsuleUrl: string;
   releaseDate: string;
+  isComingSoon: boolean;
+  isDemo: boolean;
+  hasDemo: boolean;
   reviewDesc: string;
   reviewPercent: number;
   genres: string[];
@@ -86,6 +93,9 @@ export interface CachedSteamData {
   priceInitial: number | null;
   discountPercent: number;
   genres: string[];
+  isComingSoon?: boolean;
+  isDemo?: boolean;
+  hasDemo?: boolean;
 }
 
 export interface SteamCacheEntry {

@@ -54,8 +54,15 @@ export function prepareStats(games: GameEntry[]): StatsBreakdown {
   let totalCost = 0;
   let gamesWithDuration = 0;
   let minYear = new Date().getUTCFullYear();
+  let comingSoonCount = 0;
+  let demoCount = 0;
+  let hasDemoCount = 0;
 
   games.forEach(g => {
+    if (g.isComingSoon) comingSoonCount++;
+    if (g.isDemo) demoCount++;
+    if (g.hasDemo) hasDemoCount++;
+
     // Duration
     if (g.hltbMain !== null && g.hltbMain > 0) {
       const h = g.hltbMain;
@@ -66,7 +73,9 @@ export function prepareStats(games: GameEntry[]): StatsBreakdown {
     }
 
     // Price
-    if (g.isFree) {
+    if (g.isComingSoon) {
+      // Don't count in price buckets
+    } else if (g.isFree || g.isDemo) {
       priceBuckets[0].count++;
     } else if (g.priceFinal !== null) {
       const p = g.priceFinal;
@@ -109,6 +118,14 @@ export function prepareStats(games: GameEntry[]): StatsBreakdown {
   const yearLabels = years.map(String);
   const yearValues = years.map(y => yearCounts[y]);
 
+  // If there are many coming soon games, maybe mention it
+  const topGenre = sortedGenres[0]?.[0] || 'N/A';
+  const insightText = [
+    topGenre,
+    comingSoonCount > 0 ? `${comingSoonCount} soon` : '',
+    hasDemoCount > 0 ? `${hasDemoCount} demos` : ''
+  ].filter(Boolean).join(' / ');
+
   return {
     durationDist: {
       labels: durationBuckets.map(b => b.label),
@@ -129,7 +146,7 @@ export function prepareStats(games: GameEntry[]): StatsBreakdown {
     insights: {
       avgPricePerHour: totalHours > 0 ? totalCost / totalHours : 0,
       totalPotentialHours: totalHours,
-      mostCommonGenre: sortedGenres[0]?.[0] || 'N/A',
+      mostCommonGenre: insightText,
       oldestItemYear: minYear,
     }
   };

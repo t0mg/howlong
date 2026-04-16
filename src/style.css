@@ -621,10 +621,48 @@ img {
   transform: scale(1.05);
 }
 
-.discount-badge {
+.game-card-badges {
   position: absolute;
   top: 0.5rem;
+  left: 0.5rem;
   right: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  pointer-events: none;
+}
+
+.status-badge {
+  background: var(--bg-surface);
+  backdrop-filter: blur(8px);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid var(--bg-glass-border);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+.badge-coming-soon {
+  background: rgba(99, 102, 241, 0.85);
+  border-color: rgba(167, 139, 250, 0.4);
+}
+
+.badge-demo {
+  background: rgba(100, 116, 139, 0.85);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.badge-demo-avail {
+  background: rgba(52, 211, 153, 0.2);
+  border-color: rgba(52, 211, 153, 0.4);
+  color: var(--success);
+}
+
+.discount-badge {
   background: var(--sale-green);
   color: #000;
   font-size: 0.8rem;
@@ -632,6 +670,7 @@ img {
   padding: 0.2rem 0.5rem;
   border-radius: var(--radius-sm);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
 }
 
 .game-card-info {
@@ -709,10 +748,14 @@ img {
   text-decoration: line-through;
 }
 
-.price-free {
+.price-free, .price-status {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--success);
+}
+
+.price-status {
+  color: var(--accent-secondary);
 }
 
 .price-unknown {

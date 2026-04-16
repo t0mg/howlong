@@ -70,7 +70,7 @@ async function handlePricesBatch(url: URL): Promise<Response> {
 }
 
 async function handleMetadata(appId: string): Promise<Response> {
-  const steamUrl = `https://store.steampowered.com/api/appdetails?appids=${appId}&filters=basic,genres`;
+  const steamUrl = `https://store.steampowered.com/api/appdetails?appids=${appId}&filters=basic,genres,demos,release_date`;
 
   console.log(`[Worker] Fetching Metadata: ${appId}`);
 
@@ -79,7 +79,7 @@ async function handleMetadata(appId: string): Promise<Response> {
     cf: {
       cacheEverything: true,
       cacheTtl: 604800, // 7 days for metadata
-      cacheKey: `steam-meta-v2-${appId}`,
+      cacheKey: `steam-meta-v3-${appId}`,
     },
     headers: { 'User-Agent': 'Mozilla/5.0' },
   } as RequestInit);
@@ -103,19 +103,29 @@ async function handleMetadata(appId: string): Promise<Response> {
 
     if (htmlRes.ok) {
       const html = await htmlRes.text();
+      
       const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
       if (titleMatch) {
         let title = titleMatch[1].trim();
         // Clean title: "Save 50% on Game Name on Steam" -> "Game Name"
         title = title.replace(/ on Steam$/i, '').replace(/^Save \d+% on /i, '');
 
+        const isComingSoon = html.includes('game_area_comingsoon') || html.includes('Ce jeu n\'est pas encore disponible');
+        const hasDemo = html.includes('demo_above_purchase') || html.includes('game_area_purchase_demo') || html.includes('Download') && html.includes('Demo');
+
         data = {
           [appId]: {
             success: true,
+            _is_fallback: true,
             data: {
               name: title,
               header_image: `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg`,
-              type: 'game'
+              type: 'game',
+              release_date: {
+                coming_soon: isComingSoon,
+                date: isComingSoon ? 'Coming Soon' : ''
+              },
+              demos: hasDemo ? [{ appid: 1 }] : undefined
             }
           }
         };
