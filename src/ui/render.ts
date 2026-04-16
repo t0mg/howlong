@@ -525,7 +525,7 @@ export function renderStatsModal(
   refs.closeBtn.addEventListener('click', close);
   refs.overlay.addEventListener('click', (e) => { if (e.target === refs.overlay) close(); });
 
-  const data = prepareStats(games);
+  const data = prepareStats(games, currency);
   
   const stats = [
     { icon: '⏳', label: t('insights_avg_price_hr'), value: formatCurrency(data.insights.avgPricePerHour, currency) },

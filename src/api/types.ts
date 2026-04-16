@@ -142,13 +142,14 @@ export interface SteamRegion {
   name: string;
   cc: string;
   currency: string;
+  symbol: string;
 }
 
 export const REGION_MAP: Record<string, SteamRegion> = {
-  'us': { id: 'us', name: 'United States ($)', cc: 'us', currency: 'USD' },
-  'eu': { id: 'eu', name: 'European Union (€)', cc: 'be', currency: 'EUR' },
-  'gb': { id: 'gb', name: 'United Kingdom (£)', cc: 'gb', currency: 'GBP' },
-  'ca': { id: 'ca', name: 'Canada ($)', cc: 'ca', currency: 'CAD' },
-  'au': { id: 'au', name: 'Australia ($)', cc: 'au', currency: 'AUD' },
-  'jp': { id: 'jp', name: 'Japan (¥)', cc: 'jp', currency: 'JPY' },
+  'us': { id: 'us', name: 'United States ($)', cc: 'us', currency: 'USD', symbol: '$' },
+  'eu': { id: 'eu', name: 'European Union (€)', cc: 'be', currency: 'EUR', symbol: '€' },
+  'gb': { id: 'gb', name: 'United Kingdom (£)', cc: 'gb', currency: 'GBP', symbol: '£' },
+  'ca': { id: 'ca', name: 'Canada ($)', cc: 'ca', currency: 'CAD', symbol: '$' },
+  'au': { id: 'au', name: 'Australia ($)', cc: 'au', currency: 'AUD', symbol: '$' },
+  'jp': { id: 'jp', name: 'Japan (¥)', cc: 'jp', currency: 'JPY', symbol: '¥' },
 };

@@ -1,4 +1,5 @@
 import type { GameEntry } from '../api/types';
+import { REGION_MAP } from '../api/types';
 
 export interface ChartData {
   labels: string[];
@@ -22,7 +23,11 @@ export interface StatsBreakdown {
   };
 }
 
-export function prepareStats(games: GameEntry[]): StatsBreakdown {
+export function prepareStats(games: GameEntry[], currencyCode = 'USD'): StatsBreakdown {
+  // Try to find the symbol for the given currency code
+  const region = Object.values(REGION_MAP).find(r => r.currency === currencyCode);
+  const symbol = region ? region.symbol : '$';
+
   // 1. Duration Distribution (Main Story)
   const durationBuckets = [
     { label: '< 2h', min: 0, max: 2, count: 0 },
@@ -37,11 +42,11 @@ export function prepareStats(games: GameEntry[]): StatsBreakdown {
   // 2. Price Distribution
   const priceBuckets = [
     { label: 'Free', min: 0, max: 0, count: 0, isFree: true },
-    { label: '< $5', min: 0.01, max: 5, count: 0 },
-    { label: '$5-15', min: 5, max: 15, count: 0 },
-    { label: '$15-30', min: 15, max: 30, count: 0 },
-    { label: '$30-60', min: 30, max: 60, count: 0 },
-    { label: '$60+', min: 60, max: Infinity, count: 0 },
+    { label: `< ${symbol}5`, min: 0.01, max: 5, count: 0 },
+    { label: `${symbol}5-15`, min: 5, max: 15, count: 0 },
+    { label: `${symbol}15-30`, min: 15, max: 30, count: 0 },
+    { label: `${symbol}30-60`, min: 30, max: 60, count: 0 },
+    { label: `${symbol}60+`, min: 60, max: Infinity, count: 0 },
   ];
 
   // 3. Genres
