@@ -1,267 +1,289 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- SEO -->
-    <title>How Long to Clear — Steam Wishlist × HowLongToBeat</title>
-    <meta name="description" content="Cross-reference your Steam wishlist with HowLongToBeat data. Sort by playtime, check prices, and estimate how long it would take to clear your entire backlog." />
-    <meta name="theme-color" content="#0a0e1a" />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- PWA -->
-    <link rel="manifest" href="./manifest.json" />
-    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+  <!-- SEO -->
+  <title>How Long to Clear — Steam Wishlist × HowLongToBeat</title>
+  <meta name="description"
+    content="Cross-reference your Steam wishlist with HowLongToBeat data. Sort by playtime, check prices, and estimate how long it would take to clear your entire backlog." />
+  <meta name="theme-color" content="#0a0e1a" />
 
-    <!-- Open Graph -->
-    <meta property="og:title" content="How Long to Clear" />
-    <meta property="og:description" content="Steam Wishlist × HowLongToBeat — see how many hours stand between you and gaming bliss." />
-    <meta property="og:type" content="website" />
-  </head>
-  <body>
-    <div id="app"></div>
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="./icon.svg" />
 
-    <!-- ── Reusable Components ──────────────────────────────── -->
+  <!-- Open Graph -->
+  <meta property="og:title" content="How Long to Clear" />
+  <meta property="og:description"
+    content="Steam Wishlist × HowLongToBeat — see how many hours stand between you and gaming bliss." />
+  <meta property="og:type" content="website" />
+</head>
 
-    <template id="tpl-icon-settings">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-      </svg>
-    </template>
+<body>
+  <div id="app"></div>
 
-    <template id="tpl-icon-insights">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21.21 15.89A10 10 0 1 1 8 2.83M22 12A10 10 0 0 0 12 2v10z"/>
-      </svg>
-    </template>
+  <!-- ── Reusable Components ──────────────────────────────── -->
 
-    <template id="tpl-settings-item">
-      <div class="settings-item">
-        <div class="settings-item-info">
-          <span class="settings-item-label" data-ref="label"></span>
-          <p class="settings-item-desc" data-ref="desc"></p>
-        </div>
-        <div class="settings-item-action" data-ref="action"></div>
+  <template id="tpl-icon-settings">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path
+        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  </template>
+
+  <template id="tpl-icon-insights">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21.21 15.89A10 10 0 1 1 8 2.83M22 12A10 10 0 0 0 12 2v10z" />
+    </svg>
+  </template>
+
+  <template id="tpl-settings-item">
+    <div class="settings-item">
+      <div class="settings-item-info">
+        <span class="settings-item-label" data-ref="label"></span>
+        <p class="settings-item-desc" data-ref="desc"></p>
       </div>
-    </template>
+      <div class="settings-item-action" data-ref="action"></div>
+    </div>
+  </template>
 
-    <!-- ── Main Templates ───────────────────────────────────── -->
+  <!-- ── Main Templates ───────────────────────────────────── -->
 
-    <!-- Landing Page -->
-    <template id="tpl-landing">
-      <div class="landing">
-        <button class="btn-ghost landing-settings" data-ref="settingsBtn" data-t-title="settings_title">
+  <!-- Landing Page -->
+  <template id="tpl-landing">
+    <div class="landing">
+      <button class="btn-ghost landing-settings" data-ref="settingsBtn" data-t-title="settings_title">
+        <var data-tpl="tpl-icon-settings"></var>
+      </button>
+      <div class="landing-logo">
+        <svg viewBox="0 0 64 64" width="80" height="80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="32" cy="32" r="30" stroke="url(#g1)" stroke-width="3" fill="none" />
+          <path d="M32 14 A18 18 0 1 1 14 32" stroke="url(#g2)" stroke-width="3" stroke-linecap="round" fill="none" />
+          <line x1="32" y1="32" x2="32" y2="20" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" />
+          <line x1="32" y1="32" x2="42" y2="32" stroke="var(--accent-secondary)" stroke-width="2"
+            stroke-linecap="round" />
+          <circle cx="32" cy="32" r="2.5" fill="var(--accent)" />
+          <defs>
+            <linearGradient id="g1" x1="0" y1="0" x2="64" y2="64">
+              <stop offset="0%" stop-color="var(--accent)" />
+              <stop offset="100%" stop-color="var(--accent-secondary)" />
+            </linearGradient>
+            <linearGradient id="g2" x1="0" y1="0" x2="64" y2="64">
+              <stop offset="0%" stop-color="var(--accent-secondary)" />
+              <stop offset="100%" stop-color="var(--accent)" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <h1 class="landing-title" data-t="app_title"></h1>
+      <p class="landing-subtitle" data-t="app_subtitle"></p>
+      <form class="landing-form" data-ref="form">
+        <div class="input-group">
+          <input type="text" data-ref="input" data-t-placeholder="steam_id_placeholder" autocomplete="off"
+            spellcheck="false" required>
+          <button type="submit" class="btn-primary" data-ref="submitBtn">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <span data-t="fetch_wishlist"></span>
+          </button>
+        </div>
+      </form>
+      <p class="help-text" data-t="landing_help"></p>
+      <p class="help-text" data-t="landing_disclaimer"></p>
+    </div>
+  </template>
+
+  <!-- Loading State -->
+  <template id="tpl-loading">
+    <div class="loading-container">
+      <div class="spinner"></div>
+      <p class="loading-message" data-ref="message"></p>
+      <div class="progress-area" data-ref="progressArea">
+        <div class="progress-bar">
+          <div class="progress-fill" data-ref="progressFill"></div>
+        </div>
+        <p class="progress-label" data-ref="progressLabel"></p>
+      </div>
+      <div class="throttled-area" data-ref="throttledArea"></div>
+      <div class="actions-area" data-ref="actionsArea"></div>
+    </div>
+  </template>
+
+  <template id="tpl-throttled-alert">
+    <div class="throttled-alert">
+      <span class="throttled-icon">⚠️</span>
+      <div class="throttled-text">
+        <span class="throttled-title" data-t="loading_throttled_title"></span>
+        <span class="throttled-timer" data-ref="timer"></span>
+      </div>
+    </div>
+  </template>
+
+  <!-- Error State -->
+  <template id="tpl-error">
+    <div class="error-container">
+      <div class="error-icon">
+        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--danger)" stroke-width="2">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="15" y1="9" x2="9" y2="15" />
+          <line x1="9" y1="9" x2="15" y2="15" />
+        </svg>
+      </div>
+      <p class="error-message" data-ref="message"></p>
+      <button class="btn-primary" data-ref="retryBtn" data-t="error_try_again"></button>
+    </div>
+  </template>
+
+  <!-- Dashboard Shell -->
+  <template id="tpl-dashboard-shell">
+    <div class="dashboard-shell">
+      <div data-ref="headerRegion"></div>
+      <div data-ref="statsRegion"></div>
+      <div data-ref="controlsRegion"></div>
+      <div data-ref="infoRegion"></div>
+      <div data-ref="gridRegion"></div>
+    </div>
+  </template>
+
+  <!-- Dashboard Header -->
+  <template id="tpl-header">
+    <header class="dashboard-header">
+      <div class="header-left">
+        <h1 class="header-title" data-t="app_title"></h1>
+        <span class="header-steam-id" data-ref="steamId"></span>
+      </div>
+      <div class="header-actions">
+        <button class="btn-ghost" data-ref="resetBtn" data-t="dashboard_change_id"></button>
+        <button class="btn-ghost btn-insights" data-ref="insightsBtn" data-t-title="dashboard_insights">
+          <var data-tpl="tpl-icon-insights"></var>
+          <span data-t="dashboard_insights"></span>
+        </button>
+        <button class="btn-ghost" data-ref="settingsBtn" data-t-title="settings_title">
           <var data-tpl="tpl-icon-settings"></var>
         </button>
-        <div class="landing-logo">
-          <svg viewBox="0 0 64 64" width="80" height="80" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="32" cy="32" r="30" stroke="url(#g1)" stroke-width="3" fill="none"/>
-            <path d="M32 14 A18 18 0 1 1 14 32" stroke="url(#g2)" stroke-width="3" stroke-linecap="round" fill="none"/>
-            <line x1="32" y1="32" x2="32" y2="20" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
-            <line x1="32" y1="32" x2="42" y2="32" stroke="var(--accent-secondary)" stroke-width="2" stroke-linecap="round"/>
-            <circle cx="32" cy="32" r="2.5" fill="var(--accent)"/>
-            <defs>
-              <linearGradient id="g1" x1="0" y1="0" x2="64" y2="64">
-                <stop offset="0%" stop-color="var(--accent)"/>
-                <stop offset="100%" stop-color="var(--accent-secondary)"/>
-              </linearGradient>
-              <linearGradient id="g2" x1="0" y1="0" x2="64" y2="64">
-                <stop offset="0%" stop-color="var(--accent-secondary)"/>
-                <stop offset="100%" stop-color="var(--accent)"/>
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-        <h1 class="landing-title" data-t="app_title"></h1>
-        <p class="landing-subtitle" data-t="app_subtitle"></p>
-        <form class="landing-form" data-ref="form">
-          <div class="input-group">
-            <input type="text" data-ref="input" data-t-placeholder="steam_id_placeholder" autocomplete="off" spellcheck="false" required>
-            <button type="submit" class="btn-primary" data-ref="submitBtn">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              <span data-t="fetch_wishlist"></span>
-            </button>
-          </div>
-        </form>
-        <p class="help-text" data-t="landing_help"></p>
       </div>
-    </template>
+    </header>
+  </template>
 
-    <!-- Loading State -->
-    <template id="tpl-loading">
-      <div class="loading-container">
-        <div class="spinner"></div>
-        <p class="loading-message" data-ref="message"></p>
-        <div class="progress-area" data-ref="progressArea">
-          <div class="progress-bar"><div class="progress-fill" data-ref="progressFill"></div></div>
-          <p class="progress-label" data-ref="progressLabel"></p>
-        </div>
-        <div class="throttled-area" data-ref="throttledArea"></div>
-        <div class="actions-area" data-ref="actionsArea"></div>
+  <!-- Stats Bar -->
+  <template id="tpl-stats-bar">
+    <div class="stats-bar" data-ref="container"></div>
+  </template>
+
+  <template id="tpl-stat-card">
+    <div class="stat-card">
+      <span class="stat-icon" data-ref="icon"></span>
+      <span class="stat-value" data-ref="value"></span>
+      <span class="stat-label" data-ref="label"></span>
+    </div>
+  </template>
+
+  <!-- Filter & Sort -->
+  <template id="tpl-controls">
+    <div class="controls-container">
+      <div class="filter-controls">
+        <span class="sort-label" data-t="dashboard_filter_label"></span>
+        <select class="filter-select" data-ref="filterSelect"></select>
       </div>
-    </template>
-
-    <template id="tpl-throttled-alert">
-      <div class="throttled-alert">
-        <span class="throttled-icon">⚠️</span>
-        <div class="throttled-text">
-          <span class="throttled-title" data-t="loading_throttled_title"></span>
-          <span class="throttled-timer" data-ref="timer"></span>
-        </div>
+      <div class="sort-controls" data-ref="sortContainer">
+        <span class="sort-label" data-t="dashboard_sort_label"></span>
       </div>
-    </template>
+    </div>
+  </template>
 
-    <!-- Error State -->
-    <template id="tpl-error">
-      <div class="error-container">
-        <div class="error-icon">
-          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--danger)" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
-          </svg>
-        </div>
-        <p class="error-message" data-ref="message"></p>
-        <button class="btn-primary" data-ref="retryBtn" data-t="error_try_again"></button>
+  <!-- Game Grid -->
+  <template id="tpl-grid">
+    <div class="game-grid" data-ref="container"></div>
+  </template>
+
+  <!-- Game Card -->
+  <template id="tpl-game-card">
+    <div class="game-card">
+      <div class="game-card-img">
+        <img data-ref="img" loading="lazy" width="460" height="215">
+        <div class="game-card-badges" data-ref="badges"></div>
       </div>
-    </template>
-
-    <!-- Dashboard Shell -->
-    <template id="tpl-dashboard-shell">
-      <div class="dashboard-shell">
-        <div data-ref="headerRegion"></div>
-        <div data-ref="statsRegion"></div>
-        <div data-ref="controlsRegion"></div>
-        <div data-ref="infoRegion"></div>
-        <div data-ref="gridRegion"></div>
+      <div class="game-card-info">
+        <h3 class="game-name" data-ref="name"></h3>
+        <span class="game-date" data-ref="date"></span>
+        <div class="genre-chips" data-ref="genres"></div>
+        <div class="price-row" data-ref="priceRow"></div>
+        <div class="hltb-section" data-ref="hltb"></div>
+        <div class="game-links" data-ref="links"></div>
       </div>
-    </template>
+    </div>
+  </template>
 
-    <!-- Dashboard Header -->
-    <template id="tpl-header">
-      <header class="dashboard-header">
-        <div class="header-left">
-          <h1 class="header-title" data-t="app_title"></h1>
-          <span class="header-steam-id" data-ref="steamId"></span>
-        </div>
-        <div class="header-actions">
-          <button class="btn-ghost" data-ref="resetBtn" data-t="dashboard_change_id"></button>
-          <button class="btn-ghost btn-insights" data-ref="insightsBtn" data-t-title="dashboard_insights">
-            <var data-tpl="tpl-icon-insights"></var>
-            <span data-t="dashboard_insights"></span>
-          </button>
-          <button class="btn-ghost" data-ref="settingsBtn" data-t-title="settings_title">
-            <var data-tpl="tpl-icon-settings"></var>
-          </button>
-        </div>
-      </header>
-    </template>
-
-    <!-- Stats Bar -->
-    <template id="tpl-stats-bar">
-      <div class="stats-bar" data-ref="container"></div>
-    </template>
-
-    <template id="tpl-stat-card">
-      <div class="stat-card">
-        <span class="stat-icon" data-ref="icon"></span>
-        <span class="stat-value" data-ref="value"></span>
-        <span class="stat-label" data-ref="label"></span>
+  <!-- Game Card Components -->
+  <template id="tpl-duration-row">
+    <div class="duration-row">
+      <span class="duration-label" data-ref="label"></span>
+      <div class="duration-bar-container">
+        <div class="duration-bar" data-ref="bar"></div>
       </div>
-    </template>
+      <span class="duration-hours" data-ref="hours"></span>
+    </div>
+  </template>
 
-    <!-- Filter & Sort -->
-    <template id="tpl-controls">
-      <div class="controls-container">
-        <div class="filter-controls">
-          <span class="sort-label" data-t="dashboard_filter_label"></span>
-          <select class="filter-select" data-ref="filterSelect"></select>
+  <!-- Settings Modal -->
+  <template id="tpl-settings-modal">
+    <div class="modal-overlay" data-ref="overlay">
+      <div class="modal-card">
+        <h2 class="modal-title" data-t="settings_title"></h2>
+        <p class="modal-desc" data-t="settings_desc"></p>
+
+        <div class="settings-content">
+          <var data-tpl="tpl-settings-item" data-t-label="settings_region_label" data-t-desc="settings_region_desc"
+            data-ref-action="regionContainer"></var>
+          <var data-tpl="tpl-settings-item" data-t-label="settings_clear_hltb_label"
+            data-t-desc="settings_clear_hltb_desc" data-ref-action="hltbContainer"></var>
+          <var data-tpl="tpl-settings-item" data-t-label="settings_clear_steam_label"
+            data-t-desc="settings_clear_steam_desc" data-ref-action="steamContainer"></var>
+          <var data-tpl="tpl-settings-item" data-t-label="settings_hard_reset_label"
+            data-t-desc="settings_hard_reset_desc" data-ref-action="resetContainer"></var>
         </div>
-        <div class="sort-controls" data-ref="sortContainer">
-          <span class="sort-label" data-t="dashboard_sort_label"></span>
+
+        <div class="modal-footer">
+          <button class="btn-ghost" data-ref="closeBtn" data-t="settings_close"></button>
         </div>
       </div>
-    </template>
+    </div>
+  </template>
 
-    <!-- Game Grid -->
-    <template id="tpl-grid">
-      <div class="game-grid" data-ref="container"></div>
-    </template>
+  <!-- Insights Modal -->
+  <template id="tpl-insights-modal">
+    <div class="modal-overlay" data-ref="overlay">
+      <div class="modal-card modal-card-wide">
+        <h2 class="modal-title" data-t="insights_title"></h2>
+        <p class="modal-desc" data-t="insights_desc"></p>
 
-    <!-- Game Card -->
-    <template id="tpl-game-card">
-      <div class="game-card">
-        <div class="game-card-img">
-          <img data-ref="img" loading="lazy" width="460" height="215">
-          <div class="game-card-badges" data-ref="badges"></div>
-        </div>
-        <div class="game-card-info">
-          <h3 class="game-name" data-ref="name"></h3>
-          <span class="game-date" data-ref="date"></span>
-          <div class="genre-chips" data-ref="genres"></div>
-          <div class="price-row" data-ref="priceRow"></div>
-          <div class="hltb-section" data-ref="hltb"></div>
-          <div class="game-links" data-ref="links"></div>
-        </div>
-      </div>
-    </template>
-
-    <!-- Game Card Components -->
-    <template id="tpl-duration-row">
-      <div class="duration-row">
-        <span class="duration-label" data-ref="label"></span>
-        <div class="duration-bar-container">
-          <div class="duration-bar" data-ref="bar"></div>
-        </div>
-        <span class="duration-hours" data-ref="hours"></span>
-      </div>
-    </template>
-
-    <!-- Settings Modal -->
-    <template id="tpl-settings-modal">
-      <div class="modal-overlay" data-ref="overlay">
-        <div class="modal-card">
-          <h2 class="modal-title" data-t="settings_title"></h2>
-          <p class="modal-desc" data-t="settings_desc"></p>
-          
-          <div class="settings-content">
-            <var data-tpl="tpl-settings-item" data-t-label="settings_region_label" data-t-desc="settings_region_desc" data-ref-action="regionContainer"></var>
-            <var data-tpl="tpl-settings-item" data-t-label="settings_clear_hltb_label" data-t-desc="settings_clear_hltb_desc" data-ref-action="hltbContainer"></var>
-            <var data-tpl="tpl-settings-item" data-t-label="settings_clear_steam_label" data-t-desc="settings_clear_steam_desc" data-ref-action="steamContainer"></var>
-            <var data-tpl="tpl-settings-item" data-t-label="settings_hard_reset_label" data-t-desc="settings_hard_reset_desc" data-ref-action="resetContainer"></var>
-          </div>
-
-          <div class="modal-footer">
-            <button class="btn-ghost" data-ref="closeBtn" data-t="settings_close"></button>
+        <div class="insights-content">
+          <div class="stats-summary-grid" data-ref="statsGrid"></div>
+          <div class="charts-container">
+            <div class="chart-box" id="chart-duration"></div>
+            <div class="chart-box" id="chart-price"></div>
+            <div class="chart-box" id="chart-year"></div>
+            <div class="chart-box" id="chart-genre"></div>
           </div>
         </div>
-      </div>
-    </template>
 
-    <!-- Insights Modal -->
-    <template id="tpl-insights-modal">
-      <div class="modal-overlay" data-ref="overlay">
-        <div class="modal-card modal-card-wide">
-          <h2 class="modal-title" data-t="insights_title"></h2>
-          <p class="modal-desc" data-t="insights_desc"></p>
-          
-          <div class="insights-content">
-            <div class="stats-summary-grid" data-ref="statsGrid"></div>
-            <div class="charts-container">
-              <div class="chart-box" id="chart-duration"></div>
-              <div class="chart-box" id="chart-price"></div>
-              <div class="chart-box" id="chart-genre"></div>
-              <div class="chart-box" id="chart-year"></div>
-            </div>
-          </div>
-
-          <div class="modal-footer">
-            <button class="btn-ghost" data-ref="closeBtn" data-t="settings_close"></button>
-          </div>
+        <div class="modal-footer">
+          <button class="btn-ghost" data-ref="closeBtn" data-t="settings_close"></button>
         </div>
       </div>
-    </template>
+    </div>
+  </template>
 
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>

@@ -6,7 +6,8 @@ const translations: Record<Locale, Record<string, string>> = {
     app_subtitle: 'Find your next wishlisted game to play based on your time and budget.',
     steam_id_placeholder: 'Enter your Steam64 ID (e.g. 76561198012345678)',
     fetch_wishlist: 'Fetch Wishlist',
-    landing_help: 'Your Steam profile & wishlist must be <strong>public</strong>. Find your Steam64 ID at <a href="https://steamid.io" target="_blank" rel="noopener">steamid.io</a>. No user data is stored. <a href="https://github.com/t0mg/howlong">Project source</a>.',
+    landing_help: 'Your Steam profile & wishlist must be <strong>public</strong>. Find your Steam64 ID at <a href="https://steamid.io" target="_blank" rel="noopener">steamid.io</a>.',
+    landing_disclaimer: 'This is a fan-made project, not affiliated with <a href="https://store.steampowered.com" target="_blank" rel="noopener">Valve</a> or <a href="https://howlongtobeat.com" target="_blank" rel="noopener">HowLongToBeat</a>. Wishlist data is only stored locally in your browser. Source code <a href="https://github.com/t0mg/howlong">on GitHub</a>.',
 
     loading_games_enriched: '{count} / {total} games processed ({percent}%)',
     loading_throttled_title: 'Steam is throttling requests',
