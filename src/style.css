@@ -1066,3 +1066,98 @@ img {
     justify-content: center;
   }
 }
+
+/* ── Insights Modal ────────────────────────────────────────── */
+
+.modal-card-wide {
+  max-width: 960px;
+}
+
+.stats-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.charts-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.chart-box {
+  background: var(--bg-glass);
+  border: 1px solid var(--bg-glass-border);
+  border-radius: var(--radius);
+  padding: 1.5rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-box .frappe-chart .title {
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  fill: var(--text-secondary) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Custom button for insights */
+.btn-insights {
+  color: var(--accent-secondary);
+  border-color: rgba(167, 139, 250, 0.3);
+}
+
+.btn-insights:hover {
+  background: rgba(167, 139, 250, 0.1);
+  border-color: var(--accent-secondary);
+  color: white;
+  box-shadow: 0 0 15px rgba(167, 139, 250, 0.2);
+}
+
+svg.frappe-chart {
+  overflow: visible;
+}
+
+/* Frappe Charts Overrides for Dark Mode */
+.frappe-chart .chart-container .axis,
+.frappe-chart .chart-container .chart-label {
+  fill: var(--text-muted);
+}
+
+.frappe-chart .chart-container .grid-line {
+  stroke: var(--bg-glass-border);
+}
+
+.frappe-chart .chart-container .title {
+  fill: var(--text-primary);
+}
+
+.frappe-chart .stats-legend text {
+  fill: var(--text-secondary);
+}
+
+.frappe-chart .graph-svg-tip {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--bg-glass-border) !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+@media (max-width: 900px) {
+  .charts-container {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}

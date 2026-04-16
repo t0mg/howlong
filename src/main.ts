@@ -4,7 +4,7 @@ import { REGION_MAP } from './api/types';
 import { fetchSteamWishlist, fetchSteamPriceBatch, fetchSteamMetadata } from './api/steam';
 import { searchHLTB, formatDurationHours } from './api/hltb';
 import { getCachedHLTB, setCachedHLTB, getCachedSteam, setCachedSteam, getSetting, setSetting, clearHLTBCache, clearSteamCache } from './cache';
-import { renderLanding, renderLoading, renderError, renderDashboard } from './ui/render';
+import { renderLanding, renderLoading, renderError, renderDashboard, renderStatsModal } from './ui/render';
 
 // ── App State ────────────────────────────────────────────────
 
@@ -297,7 +297,7 @@ async function handleFetchWishlist(steamId: string) {
     state.loading = false;
     state.onStop = undefined;
 
-    renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings);
+    renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings, handleInsights);
 
   } catch (err: unknown) {
     state.loading = false;
@@ -375,13 +375,13 @@ function handleSort(field: SortField) {
     }
   }
   setSetting('lastSort', state.sort);
-  renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings);
+  renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings, handleInsights);
 }
 
 function handleFilter(category: string | null) {
   state.filterCategory = category;
   setSetting('lastFilter', category);
-  renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings);
+  renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings, handleInsights);
 }
 
 
@@ -390,6 +390,13 @@ function handleReset() {
   state.games = [];
   state.error = null;
   renderLanding(handleFetchWishlist, handleSettings);
+}
+
+function handleInsights() {
+  const region = REGION_MAP[state.regionId] || REGION_MAP.us;
+  renderStatsModal(state.games, region.currency, () => {
+    // Optionally refresh dashboard here if needed, but not necessary here
+  });
 }
 
 

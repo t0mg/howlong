@@ -13,6 +13,7 @@
     "vite": "^8.0.4"
   },
   "dependencies": {
+    "frappe-charts": "^1.6.2",
     "idb-keyval": "^6.2.2"
   }
 }

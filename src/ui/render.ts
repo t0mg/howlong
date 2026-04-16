@@ -1,10 +1,16 @@
 import type { AppState, GameEntry, SortField } from '../api/types';
 import { REGION_MAP } from '../api/types';
 import { sortGames, filterGames, computeStats } from './sort';
+import { prepareStats } from './stats';
+import { Chart } from 'frappe-charts';
 
 
 const SETTINGS_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+</svg>`;
+
+const CHART_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M21.21 15.89A10 10 0 1 1 8 2.83M22 12A10 10 0 0 0 12 2v10z"/>
 </svg>`;
 
 // ── DOM Helpers ──────────────────────────────────────────────
@@ -224,7 +230,8 @@ export function renderDashboard(
   onSort: (field: SortField) => void,
   onFilter: (category: string | null) => void,
   onReset: () => void,
-  onSettings: () => void
+  onSettings: () => void,
+  onInsights: () => void
 ): void {
   const app = $('#app');
   app.innerHTML = '';
@@ -236,7 +243,7 @@ export function renderDashboard(
   const currency = region.currency;
 
   app.append(
-    renderHeader(state, onReset, onSettings),
+    renderHeader(state, onReset, onSettings, onInsights),
     renderStatsBar(stats, currency),
     renderFilterAndSort(state, onSort, onFilter),
     renderMatchInfo(stats),
@@ -248,7 +255,8 @@ export function renderDashboard(
 function renderHeader(
   state: AppState,
   onReset: () => void,
-  onSettings: () => void
+  onSettings: () => void,
+  onInsights: () => void
 ): HTMLElement {
   const header = el('header', { class: 'dashboard-header' });
   const headerLeft = el('div', { class: 'header-left' });
@@ -259,12 +267,16 @@ function renderHeader(
   const resetBtn = el('button', { class: 'btn-ghost', id: 'reset-btn' }, '← Change Steam ID');
   resetBtn.addEventListener('click', onReset);
 
+  const insightsBtn = el('button', { class: 'btn-ghost btn-insights', id: 'insights-btn', title: 'Insights' });
+  insightsBtn.innerHTML = CHART_ICON + '<span>Insights</span>';
+  insightsBtn.addEventListener('click', onInsights);
+
   const settingsBtn = el('button', { class: 'btn-ghost', id: 'settings-btn', title: 'Settings' });
   settingsBtn.innerHTML = SETTINGS_ICON;
 
   settingsBtn.addEventListener('click', onSettings);
 
-  const actions = el('div', { class: 'header-actions' }, resetBtn, settingsBtn);
+  const actions = el('div', { class: 'header-actions' }, resetBtn, insightsBtn, settingsBtn);
   header.append(headerLeft, actions);
   return header;
 }
@@ -482,6 +494,96 @@ export function renderSettingsModal(
   document.body.appendChild(overlay);
 
   // Close on backdrop click
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
+  });
+}
+
+export function renderStatsModal(
+  games: GameEntry[],
+  currency: string,
+  onClose: () => void
+): void {
+  const overlay = el('div', { class: 'modal-overlay' });
+  const card = el('div', { class: 'modal-card modal-card-wide' });
+
+  const title = el('h2', { class: 'modal-title' }, 'Wishlist Insights');
+  const desc = el('p', { class: 'modal-desc' }, 'A data-driven breakdown of your wishlist.');
+
+  const close = () => {
+    onClose();
+    overlay.remove();
+  };
+
+  const data = prepareStats(games);
+
+  // Stats Grid
+  const statsGrid = el('div', { class: 'stats-summary-grid' });
+  statsGrid.append(
+    createStatCard('⏳', 'Avg. Price/Hr', formatCurrency(data.insights.avgPricePerHour, currency)),
+    createStatCard('📅', 'Oldest Entry', String(data.insights.oldestItemYear)),
+    createStatCard('🏷️', 'Top Genre', data.insights.mostCommonGenre),
+    createStatCard('⚡', 'Total Story', formatHours(data.insights.totalPotentialHours))
+  );
+
+  // Charts Container
+  const chartsContainer = el('div', { class: 'charts-container' });
+
+  const durationChartEl = el('div', { class: 'chart-box', id: 'chart-duration' });
+  const priceChartEl = el('div', { class: 'chart-box', id: 'chart-price' });
+  const genreChartEl = el('div', { class: 'chart-box', id: 'chart-genre' });
+  const yearChartEl = el('div', { class: 'chart-box', id: 'chart-year' });
+
+  chartsContainer.append(durationChartEl, priceChartEl, genreChartEl, yearChartEl);
+
+  const footer = el('div', { class: 'modal-footer' });
+  const closeBtn = el('button', { class: 'btn-ghost' }, 'Close');
+  closeBtn.addEventListener('click', close);
+  footer.append(closeBtn);
+
+  card.append(title, desc, statsGrid, chartsContainer, footer);
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  // Initialize charts after appending to DOM
+  setTimeout(() => {
+    new Chart(durationChartEl, {
+      title: 'Duration Distribution (Hrs)',
+      data: data.durationDist,
+      type: 'bar',
+      height: 250,
+      colors: ['#6366f1'],
+      barOptions: { spaceRatio: 0.2 },
+    });
+
+    new Chart(priceChartEl, {
+      title: `Price Distribution (${currency})`,
+      data: data.priceDist,
+      type: 'bar',
+      height: 250,
+      colors: ['#a78bfa'],
+      barOptions: { spaceRatio: 0.2 },
+    });
+
+    new Chart(genreChartEl, {
+      title: 'Popular Genres',
+      data: data.genreDist,
+      type: 'pie',
+      height: 250,
+      colors: ['#6366f1', '#a78bfa', '#f59e0b', '#34d399', '#f87171', '#fbbf24', '#ec4899', '#06b6d4'],
+      truncateLegends: true,
+    });
+
+    new Chart(yearChartEl, {
+      title: 'Wishlist Entry Timeline',
+      data: data.yearDist,
+      type: 'line',
+      height: 250,
+      colors: ['#34d399'],
+      lineOptions: { hideDots: 0, regionFill: 1 },
+    });
+  }, 50);
+
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) close();
   });
