@@ -125,11 +125,6 @@ export function prepareStats(games: GameEntry[], currencyCode = 'USD'): StatsBre
 
   // If there are many coming soon games, maybe mention it
   const topGenre = sortedGenres[0]?.[0] || 'N/A';
-  const insightText = [
-    topGenre,
-    comingSoonCount > 0 ? `${comingSoonCount} soon` : '',
-    hasDemoCount > 0 ? `${hasDemoCount} demos` : ''
-  ].filter(Boolean).join(' / ');
 
   return {
     durationDist: {
@@ -151,7 +146,7 @@ export function prepareStats(games: GameEntry[], currencyCode = 'USD'): StatsBre
     insights: {
       avgPricePerHour: totalHours > 0 ? totalCost / totalHours : 0,
       totalPotentialHours: totalHours,
-      mostCommonGenre: insightText,
+      mostCommonGenre: topGenre,
       oldestItemYear: minYear,
     }
   };
