@@ -80,13 +80,13 @@ This project is auto-deployed to GitHub Pages on every push to `main` via the in
 └──────────────┘     └─────────────────────┘     └──────────────────┘
          │
          ▼
-  localStorage
-  (HLTB cache)
+  IndexedDB
+  (Data Cache)
 ```
 
 - **Frontend**: Vanilla TypeScript + Vite, no framework
-- **Proxy**: Cloudflare Worker with the `howlongtobeat` npm package
-- **Caching**: HLTB results cached in localStorage for 7 days
+- **Proxy**: Cloudflare Worker with direct API integrations
+- **Caching**: HLTB and Steam metadata cached indefinitely in IndexedDB (using `idb-keyval`)
 
 ## Project Structure
 
@@ -104,9 +104,13 @@ howlong/
 │  │  ├─ steam.ts                  # Steam API client
 │  │  └─ types.ts                  # TypeScript type definitions
 │  ├─ ui/
+│  │  ├─ i18n.ts                   # Internationalization and region formatting
 │  │  ├─ render.ts                 # DOM rendering (landing, dashboard, cards)
-│  │  └─ sort.ts                   # Sort/filter logic & stats
-│  ├─ cache.ts                     # localStorage HLTB cache
+│  │  ├─ sort.ts                   # Sort and filter logic
+│  │  ├─ stats.ts                  # Aggregated stats and chart preparation
+│  │  └─ template.ts               # HTML template structure definition
+│  ├─ cache.ts                     # IndexedDB cache management via idb-keyval
+│  ├─ frappe-charts.d.ts           # Types for frappe-charts
 │  ├─ main.ts                      # App entry point & orchestration
 │  └─ style.css                    # Complete design system
 ├─ worker/
@@ -114,6 +118,7 @@ howlong/
 │  ├─ package.json
 │  ├─ tsconfig.json
 │  └─ wrangler.toml
+├─ .gitignore
 ├─ index.html
 ├─ package.json
 ├─ tsconfig.json
@@ -125,8 +130,9 @@ howlong/
 - [Vite](https://vite.dev) — Build tool
 - [TypeScript](https://www.typescriptlang.org/) — Type safety
 - Vanilla CSS — Dark theme with glassmorphism
-- [Cloudflare Workers](https://workers.cloudflare.com/) — Serverless CORS proxy
-- [howlongtobeat](https://github.com/ckatzorke/howlongtobeat) — HLTB data wrapper
+- [Cloudflare Workers](https://workers.cloudflare.com/) — Serverless CORS proxy with custom integrations
+- [idb-keyval](https://github.com/jakearchibald/idb-keyval) — Promise-based IndexedDB for caching
+- [Frappe Charts](https://frappe.io/charts) — Lightweight zero-dependency data visualization
 
 ## License
 
