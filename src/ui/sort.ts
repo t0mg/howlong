@@ -45,11 +45,11 @@ function getFieldValue(game: GameEntry, field: SortField): string | number | nul
     case 'name':
       return game.name;
     case 'hltbMain':
-      return game.hltbMain;
+      return game.hltbMain ?? game.hltbMainExtra ?? game.hltbCompletionist;
     case 'hltbMainExtra':
-      return game.hltbMainExtra;
+      return game.hltbMainExtra ?? game.hltbMain ?? game.hltbCompletionist;
     case 'hltbCompletionist':
-      return game.hltbCompletionist;
+      return game.hltbCompletionist ?? game.hltbMainExtra ?? game.hltbMain;
     case 'priceFinal':
       return game.isFree ? 0 : game.priceFinal;
     case 'discountPercent':
