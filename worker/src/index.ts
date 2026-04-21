@@ -299,6 +299,51 @@ export default {
         return await handleHltbSearch(url, ctx);
       }
 
+      // ── GOG Search ────────────────────────────────────────
+      // GET /gog/search?q=Game+Name
+      if (path === '/gog/search') {
+        const query = url.searchParams.get('q');
+        if (!query) return jsonResponse({ error: 'Missing ?q=' }, 400);
+
+        const gogUrl = `https://catalog.gog.com/v1/catalog?query=${encodeURIComponent(query)}&limit=1`;
+        const res = await fetch(gogUrl, {
+          cf: { cacheEverything: true, cacheTtl: 604800 },
+        } as RequestInit);
+
+        if (!res.ok) {
+          return jsonResponse({ error: 'GOG API error', status: res.status }, res.status);
+        }
+
+        const data = await res.json() as any;
+        if (data.products && data.products.length > 0) {
+          const product = data.products[0];
+
+          // Verify title matches to avoid false positives (e.g. searching "Portal 2" finding "Bridge Constructor Portal")
+          const queryLower = query.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const productTitleLower = (product.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+          if (queryLower === productTitleLower || productTitleLower.includes(queryLower)) {
+            return new Response(JSON.stringify({ found: true, storeLink: product.storeLink }), {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'public, max-age=604800',
+                ...CORS_HEADERS,
+              },
+            });
+          }
+        }
+
+        return new Response(JSON.stringify({ found: false }), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=604800',
+            ...CORS_HEADERS,
+          },
+        });
+      }
+
       // ── Health Check ──────────────────────────────────────
       if (path === '/' || path === '/health') {
         return jsonResponse({ status: 'ok', service: 'howlong-proxy' });

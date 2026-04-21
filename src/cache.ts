@@ -1,10 +1,21 @@
 import { get, set, clear as idbClear, createStore, del } from 'idb-keyval';
-import type { HLTBResult, CachedSteamData } from './api/types';
+import type { HLTBResult, CachedSteamData, GOGResult } from './api/types';
 
 // Use separate databases for each purpose to avoid IndexedDB versioning issues with idb-keyval's simple API.
 const hltbStore = createStore('howlong-cache-hltb', 'keyval');
 const steamStore = createStore('howlong-cache-steam', 'keyval');
+const gogStore = createStore('howlong-cache-gog', 'keyval');
 const settingsStore = createStore('howlong-settings', 'keyval');
+
+export async function getCachedGOG(gameName: string): Promise<GOGResult | null | undefined> {
+  const key = 'gog_' + gameName.toLowerCase().trim();
+  return await get<GOGResult | null>(key, gogStore);
+}
+
+export async function setCachedGOG(gameName: string, data: GOGResult | null): Promise<void> {
+  const key = 'gog_' + gameName.toLowerCase().trim();
+  await set(key, data, gogStore);
+}
 
 export async function getCachedHLTB(gameName: string): Promise<HLTBResult | null | undefined> {
   const key = 'hltb_' + gameName.toLowerCase().trim();
@@ -63,6 +74,7 @@ export async function clearCache(): Promise<void> {
   await Promise.all([
     idbClear(hltbStore),
     idbClear(steamStore),
+    idbClear(gogStore),
     idbClear(settingsStore),
   ]);
 }

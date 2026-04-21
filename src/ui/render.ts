@@ -463,6 +463,16 @@ function createGameCard(game: GameEntry, currency: string): HTMLElement {
     refs.links.appendChild(hltbLnk);
   }
 
+  if (game.gogStatus === 'found' && game.gogUrl) {
+    const gogLnk = document.createElement('a');
+    gogLnk.href = game.gogUrl;
+    gogLnk.target = '_blank';
+    gogLnk.rel = 'noopener';
+    gogLnk.className = 'game-link gog-link';
+    gogLnk.textContent = t('game_link_gog');
+    refs.links.appendChild(gogLnk);
+  }
+
   return element;
 }
 

@@ -3,8 +3,9 @@ import type { AppState, GameEntry, SortField, SortState } from './api/types';
 import { REGION_MAP } from './api/types';
 import { fetchSteamWishlist, fetchSteamPriceBatch, fetchSteamMetadata } from './api/steam';
 import { searchHLTB, formatDurationHours } from './api/hltb';
-import { getCachedHLTB, setCachedHLTB, getCachedSteam, setCachedSteam, getSetting, setSetting, clearHLTBCache, clearSteamCache } from './cache';
+import { getCachedHLTB, setCachedHLTB, getCachedSteam, setCachedSteam, getSetting, setSetting, getCachedGOG, setCachedGOG, clearHLTBCache, clearSteamCache } from './cache';
 import { renderLanding, renderLoading, renderError, renderDashboard, renderStatsModal } from './ui/render';
+import { searchGOG } from './api/gog';
 import { t } from './ui/i18n';
 
 // ── App State ────────────────────────────────────────────────
@@ -164,7 +165,9 @@ async function handleFetchWishlist(steamId: string) {
               hltbMain: null,
               hltbMainExtra: null,
               hltbCompletionist: null,
+              gogUrl: null,
               hltbStatus: 'pending',
+              gogStatus: 'pending',
               priceStatus: priceData ? 'found' : (cached.isFree ? 'free' : (!priceData && !cached.isComingSoon ? 'unavailable' : 'stale')),
               isStale: !priceData && cached.priceFinal !== null && !cached.isFree,
               dateAdded: item.date_added,
@@ -218,7 +221,9 @@ async function handleFetchWishlist(steamId: string) {
                 hltbMain: null,
                 hltbMainExtra: null,
                 hltbCompletionist: null,
+                gogUrl: null,
                 hltbStatus: 'pending',
+                gogStatus: 'pending',
                 priceStatus: priceData ? 'found' : ((data.is_free || data.type === 'free' || data.type === 'demo') ? 'free' : (!priceData && !data.release_date?.coming_soon ? 'unavailable' : 'not_found')),
                 dateAdded: item.date_added,
               };
@@ -356,7 +361,62 @@ async function handleFetchWishlist(steamId: string) {
       console.log(`[HLTB Proxy Cache] Stats: HIT=${hltbHits}, MISS=${hltbMisses}`);
     }
 
-    // 4) Done — show dashboard
+    // 4) Enrich with GOG data
+
+    // First pass: Resolve from local cache
+    const gamesToFetchGog: GameEntry[] = [];
+    await Promise.all(games.map(async (game) => {
+      const cached = await getCachedGOG(game.name);
+      if (cached !== undefined) {
+        if (cached && cached.found) {
+          game.gogUrl = cached.storeLink || null;
+          game.gogStatus = 'found';
+        } else {
+          game.gogStatus = 'not_found';
+        }
+      } else {
+        gamesToFetchGog.push(game);
+      }
+    }));
+
+    state.loadingMessage = t('loading_enriching_gog');
+    state.loadingProgress = games.length - gamesToFetchGog.length;
+    renderLoading(state);
+
+    // Second pass: Fetch missing ones from API with batching/delay
+    const GOG_BATCH_SIZE = 10;
+    for (let i = 0; i < gamesToFetchGog.length; i += GOG_BATCH_SIZE) {
+      if (state.isCancelled) break;
+
+      const batch = gamesToFetchGog.slice(i, i + GOG_BATCH_SIZE);
+      await Promise.all(
+        batch.map(async (game) => {
+          const { result, errorStatus } = await searchGOG(game.name, () => state.isCancelled);
+          if (state.isCancelled) return;
+
+          if (errorStatus && errorStatus >= 500) {
+            // Error handling if needed
+          } else if (result) {
+            await setCachedGOG(game.name, result);
+            if (result.found) {
+              game.gogUrl = result.storeLink || null;
+              game.gogStatus = 'found';
+            } else {
+              game.gogStatus = 'not_found';
+            }
+          }
+        })
+      );
+
+      state.loadingProgress += batch.length;
+      renderLoading(state);
+
+      if (!state.isCancelled && i + GOG_BATCH_SIZE < gamesToFetchGog.length) {
+        await sleep(300);
+      }
+    }
+
+    // 5) Done — show dashboard
     state.loading = false;
     state.onStop = undefined;
 
