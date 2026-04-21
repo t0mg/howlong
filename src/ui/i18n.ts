@@ -28,12 +28,21 @@ const translations: Record<Locale, Record<string, string>> = {
     error_try_again: 'Try Again',
 
     dashboard_change_id: '← Change Steam ID',
+    dashboard_lucky: 'I\'m Feeling Lucky',
     dashboard_insights: 'Insights',
     dashboard_filter_label: 'Filter:',
     dashboard_filter_all: 'All Categories',
     dashboard_sort_label: 'Sort by:',
     dashboard_match_info: 'HLTB data found for {found} / {total} games',
     dashboard_hltb_warning: '⚠️ Some HLTB data could not be fetched due to server errors. Reload the page to try again.',
+
+    lucky_title: 'I\'m Feeling Lucky',
+    lucky_desc: 'Not sure what to play? Let fate decide.',
+    lucky_too_long: 'Shorter',
+    lucky_not_in_mood: 'Different',
+    lucky_too_expensive: 'Cheaper',
+    lucky_ok: 'Close',
+    lucky_empty: 'Sorry, no more games to suggest!',
 
     stats_games: 'Games',
     stats_main: 'Main Story',

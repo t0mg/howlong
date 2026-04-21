@@ -1058,6 +1058,10 @@ img {
     position: relative;
   }
 
+  .header-actions .btn-ghost span {
+    display: none;
+  }
+
   .stats-bar {
     padding: 1rem;
     grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));

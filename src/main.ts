@@ -463,7 +463,7 @@ async function handleFetchWishlist(steamId: string) {
     state.loading = false;
     state.onStop = undefined;
 
-    renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings, handleInsights);
+    renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings, handleInsights, handleLucky);
 
   } catch (err: unknown) {
     state.loading = false;
@@ -541,13 +541,13 @@ function handleSort(field: SortField) {
     }
   }
   setSetting('lastSort', state.sort);
-  renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings, handleInsights);
+  renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings, handleInsights, handleLucky);
 }
 
 function handleFilter(category: string | null) {
   state.filterCategory = category;
   setSetting('lastFilter', category);
-  renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings, handleInsights);
+  renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings, handleInsights, handleLucky);
 }
 
 
@@ -562,6 +562,13 @@ function handleInsights() {
   const region = REGION_MAP[state.regionId] || REGION_MAP.us;
   renderStatsModal(state.games, region.currency, () => {
     // Optionally refresh dashboard here if needed, but not necessary here
+  });
+}
+
+function handleLucky() {
+  const region = REGION_MAP[state.regionId] || REGION_MAP.us;
+  import('./ui/render').then(({ renderLuckyModal }) => {
+    renderLuckyModal(state.games, region.currency, () => {});
   });
 }
 

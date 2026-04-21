@@ -135,7 +135,8 @@ export function renderDashboard(
   onFilter: (category: string | null) => void,
   onReset: () => void,
   onSettings: () => void,
-  onInsights: () => void
+  onInsights: () => void,
+  onLucky: () => void
 ): void {
   const app = $('#app');
   let shell = app.querySelector('.dashboard-shell') as HTMLElement;
@@ -154,7 +155,7 @@ export function renderDashboard(
     app.appendChild(shell);
 
     // Initial static renders
-    shellRefs.headerRegion.appendChild(renderHeader(state, onReset, onSettings, onInsights));
+    shellRefs.headerRegion.appendChild(renderHeader(state, onReset, onSettings, onInsights, onLucky));
   }
 
   const getRegion = (ref: string) => shell.querySelector(`[data-ref="${ref}"]`) as HTMLElement;
@@ -198,17 +199,20 @@ function renderHeader(
   state: AppState,
   onReset: () => void,
   onSettings: () => void,
-  onInsights: () => void
+  onInsights: () => void,
+  onLucky: () => void
 ): HTMLElement {
   const { element, refs } = view<{
     steamId: HTMLElement;
     resetBtn: HTMLButtonElement;
+    luckyBtn: HTMLButtonElement;
     insightsBtn: HTMLButtonElement;
     settingsBtn: HTMLButtonElement;
   }>('tpl-header');
 
   refs.steamId.textContent = `Steam: ${state.steamId}`;
   refs.resetBtn.addEventListener('click', onReset);
+  refs.luckyBtn.addEventListener('click', onLucky);
   refs.insightsBtn.addEventListener('click', onInsights);
   refs.settingsBtn.addEventListener('click', onSettings);
 
@@ -657,6 +661,104 @@ export function renderStatsModal(
       new Chart('#chart-store', { title: t('insights_chart_store'), data: data.storeCompare, type: 'pie', height: 250, colors: ['#1a9fff', '#86328a', '#929292'], truncateLegends: true });
     }
   }, 50);
+}
+
+export function renderLuckyModal(
+  games: GameEntry[],
+  currency: string,
+  onClose: () => void
+): void {
+  const { element, refs } = view<{
+    overlay: HTMLElement;
+    closeBtn: HTMLButtonElement;
+    contentContainer: HTMLElement;
+    refineActions: HTMLElement;
+    btnTooLong: HTMLButtonElement;
+    btnNotInMood: HTMLButtonElement;
+    btnTooExpensive: HTMLButtonElement;
+  }>('tpl-lucky-modal');
+
+  let pool = [...games];
+  let currentGame: GameEntry | null = null;
+
+  const close = () => {
+    onClose();
+    element.remove();
+  };
+
+  refs.closeBtn.addEventListener('click', close);
+  refs.overlay.addEventListener('click', (e) => { if (e.target === refs.overlay) close(); });
+
+  const getDuration = (game: GameEntry) => game.hltbMain ?? game.hltbMainExtra ?? game.hltbCompletionist;
+  
+  const getPrice = (game: GameEntry) => {
+    const steamPrice = game.isFree ? 0 : game.priceFinal;
+    const gogPrice = game.gogPriceFinal;
+    if (steamPrice !== null && gogPrice !== null) return Math.min(steamPrice, gogPrice);
+    if (steamPrice !== null) return steamPrice;
+    if (gogPrice !== null) return gogPrice;
+    return null;
+  };
+
+  const draw = () => {
+    refs.contentContainer.innerHTML = '';
+    
+    if (pool.length === 0) {
+      refs.contentContainer.innerHTML = `<div style="text-align:center; color: var(--text-secondary);">${t('lucky_empty')}</div>`;
+      refs.refineActions.style.display = 'none';
+      return;
+    }
+
+    const idx = Math.floor(Math.random() * pool.length);
+    currentGame = pool.splice(idx, 1)[0];
+
+    const card = createGameCard(currentGame, currency);
+    
+    // Customize card to fit nicely in modal
+    card.style.margin = '0 auto';
+    card.style.maxWidth = '100%';
+    
+    refs.contentContainer.appendChild(card);
+
+    if (card.animate) {
+      card.animate([
+        { opacity: 0, transform: 'scale(0.95)' },
+        { opacity: 1, transform: 'scale(1)' }
+      ], { duration: 300, easing: 'ease-out' });
+    }
+  };
+
+  refs.btnTooLong.addEventListener('click', () => {
+    if (!currentGame) return;
+    const curDuration = getDuration(currentGame);
+    if (curDuration === null) return; // Cannot refine if we don't know the current duration
+    pool = pool.filter(g => {
+      const gDuration = getDuration(g);
+      return gDuration !== null && gDuration < curDuration;
+    });
+    draw();
+  });
+
+  refs.btnTooExpensive.addEventListener('click', () => {
+    if (!currentGame) return;
+    const curPrice = getPrice(currentGame);
+    if (curPrice === null) return; // Cannot refine if the game is free/unknown
+    pool = pool.filter(g => {
+      const gPrice = getPrice(g);
+      return gPrice !== null && gPrice < curPrice;
+    });
+    draw();
+  });
+
+  refs.btnNotInMood.addEventListener('click', () => {
+    if (!currentGame) return;
+    const currentGenres = (currentGame.genres || []).join(',');
+    pool = pool.filter(g => (g.genres || []).join(',') !== currentGenres);
+    draw();
+  });
+
+  document.body.appendChild(element);
+  draw();
 }
 
 // ── Formatting ───────────────────────────────────────────────

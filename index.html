@@ -43,6 +43,18 @@
     </svg>
   </template>
 
+  <template id="tpl-icon-lucky">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+      <path d="M8 8h.01" />
+      <path d="M16 8h.01" />
+      <path d="M8 16h.01" />
+      <path d="M16 16h.01" />
+      <path d="M12 12h.01" />
+    </svg>
+  </template>
+
   <template id="tpl-settings-item">
     <div class="settings-item">
       <div class="settings-item-info">
@@ -163,6 +175,10 @@
       </div>
       <div class="header-actions">
         <button class="btn-ghost" data-ref="resetBtn" data-t="dashboard_change_id"></button>
+        <button class="btn-ghost btn-lucky" data-ref="luckyBtn" data-t-title="dashboard_lucky">
+          <var data-tpl="tpl-icon-lucky"></var>
+          <span data-t="dashboard_lucky"></span>
+        </button>
         <button class="btn-ghost btn-insights" data-ref="insightsBtn" data-t-title="dashboard_insights">
           <var data-tpl="tpl-icon-insights"></var>
           <span data-t="dashboard_insights"></span>
@@ -279,6 +295,30 @@
 
         <div class="modal-footer">
           <button class="btn-ghost" data-ref="closeBtn" data-t="settings_close"></button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- Lucky Modal -->
+  <template id="tpl-lucky-modal">
+    <div class="modal-overlay" data-ref="overlay">
+      <div class="modal-card">
+        <h2 class="modal-title" data-t="lucky_title"></h2>
+        <p class="modal-desc" data-t="lucky_desc"></p>
+
+        <div class="lucky-content" data-ref="contentContainer" style="margin: 1.5rem 0;">
+          <!-- Empty State or Card rendered here -->
+        </div>
+
+        <div class="modal-footer lucky-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1rem;" data-ref="refineActions">
+          <button class="btn-primary" style="background: var(--accent-secondary);" data-ref="btnTooLong" data-t="lucky_too_long"></button>
+          <button class="btn-primary" style="background: var(--accent-secondary);" data-ref="btnNotInMood" data-t="lucky_not_in_mood"></button>
+          <button class="btn-primary" style="background: var(--accent-secondary);" data-ref="btnTooExpensive" data-t="lucky_too_expensive"></button>
+        </div>
+
+        <div class="modal-footer" style="margin-top: 0;">
+          <button class="btn-ghost" data-ref="closeBtn" data-t="lucky_ok"></button>
         </div>
       </div>
     </div>
