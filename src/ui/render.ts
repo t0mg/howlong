@@ -678,7 +678,7 @@ export function renderLuckyModal(
     btnTooExpensive: HTMLButtonElement;
   }>('tpl-lucky-modal');
 
-  let pool = [...games];
+  let pool = games.filter(g => !g.isComingSoon && !g.isUnavailable);
   let currentGame: GameEntry | null = null;
 
   const close = () => {
