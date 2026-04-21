@@ -6,7 +6,8 @@ import { searchHLTB, formatDurationHours } from './api/hltb';
 import { getCachedHLTB, setCachedHLTB, getCachedSteam, setCachedSteam, getSetting, setSetting, getCachedGOG, setCachedGOG, clearHLTBCache, clearSteamCache } from './cache';
 import { renderLanding, renderLoading, renderError, renderDashboard, renderStatsModal } from './ui/render';
 import { searchGOGBatch } from './api/gog';
-import { t } from './ui/i18n';
+import { t, getBrowserLocale, setLocale } from './ui/i18n';
+import type { Locale } from './ui/i18n';
 
 // ── App State ────────────────────────────────────────────────
 
@@ -32,6 +33,10 @@ const state: AppState = {
 
 async function init() {
   // Load settings from IDB
+  const savedLocale = await getSetting<string>('localeId');
+  const locale = savedLocale || getBrowserLocale();
+  setLocale(locale as Locale);
+
   state.regionId = (await getSetting<string>('regionId')) || 'us';
   const lastSteamId = (await getSetting<string>('lastSteamId')) || '';
 
@@ -493,12 +498,18 @@ async function handleSettings() {
       await setSetting('regionId', regionId);
       isDirty = true;
     },
+    async (localeId) => {
+      setLocale(localeId as Locale);
+      await setSetting('localeId', localeId);
+      isDirty = true;
+    },
     () => {
       if (isDirty) {
         window.location.reload();
       }
     },
-    state.regionId
+    state.regionId,
+    (await getSetting<string>('localeId')) || getBrowserLocale()
   );
 }
 

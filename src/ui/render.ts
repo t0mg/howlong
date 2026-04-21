@@ -3,7 +3,7 @@ import { REGION_MAP } from '../api/types';
 import { sortGames, filterGames, computeStats } from './sort';
 import { prepareStats } from './stats';
 import { Chart } from 'frappe-charts';
-import { t } from './i18n';
+import { t, getCurrentLocale } from './i18n';
 import { view } from './template';
 
 // ── DOM Helpers ──────────────────────────────────────────────
@@ -541,13 +541,16 @@ export function renderSettingsModal(
   onClearSteam: () => void,
   onHardReset: () => void,
   onRegionChange: (regionId: string) => void,
+  onLocaleChange: (localeId: string) => void,
   onClose: () => void,
-  currentRegionId: string
+  currentRegionId: string,
+  currentLocaleId: string
 ): void {
   const { element, refs } = view<{
     overlay: HTMLElement;
     closeBtn: HTMLButtonElement;
     regionContainer: HTMLElement;
+    langContainer: HTMLElement;
     hltbContainer: HTMLElement;
     steamContainer: HTMLElement;
     resetContainer: HTMLElement;
@@ -574,6 +577,22 @@ export function renderSettingsModal(
   });
   select.addEventListener('change', () => onRegionChange(select.value));
   refs.regionContainer.appendChild(select);
+
+  // Language Selection
+  import('./i18n').then(({ LOCALE_NAMES }) => {
+    const langSelect = document.createElement('select');
+    langSelect.className = 'btn-ghost';
+    langSelect.style.padding = '0.5rem';
+    Object.entries(LOCALE_NAMES).forEach(([id, name]) => {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = name as string;
+      if (currentLocaleId === id) opt.selected = true;
+      langSelect.appendChild(opt);
+    });
+    langSelect.addEventListener('change', () => onLocaleChange(langSelect.value));
+    refs.langContainer.appendChild(langSelect);
+  });
 
   // Action Buttons
   const hltbBtn = createActionBtn(t('settings_clear_hltb_btn'), 'var(--accent-secondary)', () => {
@@ -765,7 +784,7 @@ export function renderLuckyModal(
 
 function formatDate(timestamp: number): string {
   if (!timestamp) return '—';
-  return new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(timestamp * 1000));
+  return new Intl.DateTimeFormat(getCurrentLocale(), { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(timestamp * 1000));
 }
 
 function formatHours(hours: number): string {
@@ -782,7 +801,7 @@ function formatHours(hours: number): string {
 function formatCurrency(amount: number, currency = 'USD'): string {
   if (amount === 0) return '—';
   try {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency }).format(amount);
+    return new Intl.NumberFormat(getCurrentLocale(), { style: 'currency', currency: currency }).format(amount);
   } catch {
     const symbol = currency === 'EUR' ? '€' : '$';
     return `${symbol}${amount.toFixed(2)}`;
