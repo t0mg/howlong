@@ -30,6 +30,11 @@ self.addEventListener('activate', (event) => {
 
 // Fetch — network first, fallback to cache
 self.addEventListener('fetch', (event) => {
+  // Only cache GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   // Don't cache API calls
   if (event.request.url.includes('workers.dev') ||
     event.request.url.includes('steampowered.com') ||
