@@ -610,7 +610,7 @@ img {
 
 .game-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
   padding: 1rem 2rem;
   animation: fadeIn 400ms ease-out;
@@ -696,7 +696,6 @@ img {
 }
 
 .badge-demo-avail {
-  background: rgba(52, 211, 153, 0.2);
   border-color: rgba(52, 211, 153, 0.4);
   color: var(--success);
 }
@@ -915,7 +914,7 @@ img {
   color: #1b9fff;
 }
 
-.hltb-link:hover {
+.gog-link:hover {
   border-color: var(--accent-secondary);
   color: var(--accent-secondary);
 }

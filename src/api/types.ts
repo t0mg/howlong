@@ -44,6 +44,12 @@ export interface SteamPriceOverview {
 export interface GOGResult {
   found: boolean;
   storeLink?: string;
+  price?: {
+    amount: number;
+    baseAmount: number;
+    currency: string;
+    discount: number;
+  };
 }
 
 // ── HLTB Types ───────────────────────────────────────────────
@@ -89,6 +95,10 @@ export interface GameEntry {
 
   // GOG
   gogUrl: string | null;
+  gogPriceCurrency: string | null;
+  gogPriceInitial: number | null;
+  gogPriceFinal: number | null;
+  gogDiscountPercent: number;
 
   // Status
   hltbStatus: 'pending' | 'found' | 'not_found';

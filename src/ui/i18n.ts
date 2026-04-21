@@ -78,6 +78,7 @@ const translations: Record<Locale, Record<string, string>> = {
     insights_chart_price: 'Price Distribution ({currency})',
     insights_chart_genre: 'Popular Genres',
     insights_chart_year: 'Wishlist Entry Timeline',
+    insights_chart_store: 'Best Price: Steam vs GOG',
 
     game_coming_soon: 'Coming Soon',
     game_demo: 'Demo',

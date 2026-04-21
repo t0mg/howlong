@@ -5,7 +5,7 @@ import { fetchSteamWishlist, fetchSteamPriceBatch, fetchSteamMetadata } from './
 import { searchHLTB, formatDurationHours } from './api/hltb';
 import { getCachedHLTB, setCachedHLTB, getCachedSteam, setCachedSteam, getSetting, setSetting, getCachedGOG, setCachedGOG, clearHLTBCache, clearSteamCache } from './cache';
 import { renderLanding, renderLoading, renderError, renderDashboard, renderStatsModal } from './ui/render';
-import { searchGOG } from './api/gog';
+import { searchGOGBatch } from './api/gog';
 import { t } from './ui/i18n';
 
 // ── App State ────────────────────────────────────────────────
@@ -166,6 +166,10 @@ async function handleFetchWishlist(steamId: string) {
               hltbMainExtra: null,
               hltbCompletionist: null,
               gogUrl: null,
+              gogPriceCurrency: null,
+              gogPriceInitial: null,
+              gogPriceFinal: null,
+              gogDiscountPercent: 0,
               hltbStatus: 'pending',
               gogStatus: 'pending',
               priceStatus: priceData ? 'found' : (cached.isFree ? 'free' : (!priceData && !cached.isComingSoon ? 'unavailable' : 'stale')),
@@ -222,6 +226,10 @@ async function handleFetchWishlist(steamId: string) {
                 hltbMainExtra: null,
                 hltbCompletionist: null,
                 gogUrl: null,
+                gogPriceCurrency: null,
+                gogPriceInitial: null,
+                gogPriceFinal: null,
+                gogDiscountPercent: 0,
                 hltbStatus: 'pending',
                 gogStatus: 'pending',
                 priceStatus: priceData ? 'found' : ((data.is_free || data.type === 'free' || data.type === 'demo') ? 'free' : (!priceData && !data.release_date?.coming_soon ? 'unavailable' : 'not_found')),
@@ -369,50 +377,85 @@ async function handleFetchWishlist(steamId: string) {
       const cached = await getCachedGOG(game.name);
       if (cached !== undefined) {
         if (cached && cached.found) {
+          // Keep the storeLink, but we NEED the price updated, so we still push it to batch!
           game.gogUrl = cached.storeLink || null;
           game.gogStatus = 'found';
+          
+          if (cached.price) {
+             game.gogPriceFinal = cached.price.amount;
+             game.gogPriceInitial = cached.price.baseAmount;
+             game.gogPriceCurrency = cached.price.currency;
+             game.gogDiscountPercent = cached.price.discount;
+          }
+          gamesToFetchGog.push(game);
         } else {
+          // If it was explicitly cached as NOT found, skip it
           game.gogStatus = 'not_found';
         }
       } else {
+        // Not cached at all
         gamesToFetchGog.push(game);
       }
     }));
 
-    state.loadingMessage = t('loading_enriching_gog');
-    state.loadingProgress = games.length - gamesToFetchGog.length;
-    renderLoading(state);
-
-    // Second pass: Fetch missing ones from API with batching/delay
-    const GOG_BATCH_SIZE = 10;
-    for (let i = 0; i < gamesToFetchGog.length; i += GOG_BATCH_SIZE) {
-      if (state.isCancelled) break;
-
-      const batch = gamesToFetchGog.slice(i, i + GOG_BATCH_SIZE);
-      await Promise.all(
-        batch.map(async (game) => {
-          const { result, errorStatus } = await searchGOG(game.name, () => state.isCancelled);
-          if (state.isCancelled) return;
-
-          if (errorStatus && errorStatus >= 500) {
-            // Error handling if needed
-          } else if (result) {
-            await setCachedGOG(game.name, result);
-            if (result.found) {
-              game.gogUrl = result.storeLink || null;
-              game.gogStatus = 'found';
-            } else {
-              game.gogStatus = 'not_found';
-            }
-          }
-        })
-      );
-
-      state.loadingProgress += batch.length;
+    if (gamesToFetchGog.length > 0) {
+      state.loadingMessage = t('loading_enriching_gog');
+      state.loadingProgress = games.length - gamesToFetchGog.length;
       renderLoading(state);
 
-      if (!state.isCancelled && i + GOG_BATCH_SIZE < gamesToFetchGog.length) {
-        await sleep(300);
+      // Second pass: Fetch missing or stale ones from API with batching/delay
+      const GOG_BATCH_SIZE = 50;
+      for (let i = 0; i < gamesToFetchGog.length; i += GOG_BATCH_SIZE) {
+        if (state.isCancelled) break;
+
+        const batch = gamesToFetchGog.slice(i, i + GOG_BATCH_SIZE);
+        const batchNames = batch.map(g => g.name);
+
+        const { results, errorStatus } = await searchGOGBatch(batchNames, region.cc, region.currency);
+        if (state.isCancelled) return;
+
+        if (!errorStatus && results) {
+          // Map results to games
+          const resultMap = new Map(results.map(r => [r.name, r]));
+
+          await Promise.all(batch.map(async (game) => {
+            const result = resultMap.get(game.name);
+            if (result && !result.error) {
+               // Update cache - omitting the 'name' and 'error' from GOGResult
+               const cachedData = {
+                  found: result.found,
+                  storeLink: result.storeLink,
+                  price: result.price
+               };
+               await setCachedGOG(game.name, cachedData);
+
+               if (result.found) {
+                 game.gogUrl = result.storeLink || null;
+                 game.gogStatus = 'found';
+                 if (result.price) {
+                    game.gogPriceFinal = result.price.amount;
+                    game.gogPriceInitial = result.price.baseAmount;
+                    game.gogPriceCurrency = result.price.currency;
+                    game.gogDiscountPercent = result.price.discount;
+                 } else {
+                    game.gogPriceFinal = null;
+                    game.gogPriceInitial = null;
+                    game.gogPriceCurrency = null;
+                    game.gogDiscountPercent = 0;
+                 }
+               } else {
+                 game.gogStatus = 'not_found';
+               }
+            }
+          }));
+        }
+
+        state.loadingProgress += batch.length;
+        renderLoading(state);
+
+        if (!state.isCancelled && i + GOG_BATCH_SIZE < gamesToFetchGog.length) {
+          await sleep(100);
+        }
       }
     }
 

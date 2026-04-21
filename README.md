@@ -1,6 +1,6 @@
 # How Long to Clear ⏱️
 
-A progressive web app that cross-references your [Steam](https://store.steampowered.com) wishlist with [HowLongToBeat](https://howlongtobeat.com) data to help you decide what to play next depending on your time and budget. Built with Antigravity.
+A progressive web app that cross-references your [Steam](https://store.steampowered.com) wishlist with [HowLongToBeat](https://howlongtobeat.com) and [GOG](https://gog.com) data to help you decide what to play next depending on your time and budget. Built with Antigravity.
 
 Try it at [t0mg.github.io/howlong](https://t0mg.github.io/howlong)
 
@@ -8,7 +8,7 @@ Try it at [t0mg.github.io/howlong](https://t0mg.github.io/howlong)
 
 - 🎮 **Fetch your full Steam wishlist** by entering your Steam64 ID
 - ⏱️ **HowLongToBeat integration** — main story, main+extras, and completionist times for each game
-- 💰 **Live pricing** — current prices, discounts, and sale badges
+- 💰 **Live pricing** — compare current prices, discounts, and sale badges across both Steam and GOG
 - 📊 **Sort & analyze** — sort by duration, price, discount, priority, or name
 - 📈 **Aggregate stats** — total wishlist hours, total value, and total potential savings
 - 📱 **Installable PWA** — works offline and can be added to your home screen
@@ -75,9 +75,10 @@ This project is auto-deployed to GitHub Pages on every push to `main` via the in
 
 ```
 ┌──────────────┐     ┌─────────────────────┐     ┌──────────────────┐
-│  Browser PWA │────▶│ Cloudflare Worker    │────▶│ Steam Store API  │
-│  (Vite + TS) │     │ (CORS proxy + HLTB) │────▶│ HowLongToBeat    │
-└──────────────┘     └─────────────────────┘     └──────────────────┘
+│  Browser PWA │────▶│ Cloudflare Worker   │────▶│ Steam Store API  │
+│  (Vite + TS) │     │ (CORS proxy + API)  │────▶│ HowLongToBeat    │
+└──────────────┘     └─────────────────────┘────▶│ GOG Catalog API  │
+         │                                       └──────────────────┘
          │
          ▼
   IndexedDB
@@ -86,7 +87,7 @@ This project is auto-deployed to GitHub Pages on every push to `main` via the in
 
 - **Frontend**: Vanilla TypeScript + Vite, no framework
 - **Proxy**: Cloudflare Worker with direct API integrations
-- **Caching**: HLTB and Steam metadata cached indefinitely in IndexedDB (using `idb-keyval`)
+- **Caching**: Local persistence of metadata and cross-store states indefinitely in IndexedDB (using `idb-keyval`)
 
 ## Project Structure
 
@@ -100,6 +101,7 @@ howlong/
 ├─ src/
 │  ├─ api/
 │  │  ├─ config.ts                 # Proxy URL configuration
+│  │  ├─ gog.ts                    # GOG API client
 │  │  ├─ hltb.ts                   # HLTB API client
 │  │  ├─ steam.ts                  # Steam API client
 │  │  └─ types.ts                  # TypeScript type definitions

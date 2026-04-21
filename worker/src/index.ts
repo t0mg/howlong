@@ -300,14 +300,17 @@ export default {
       }
 
       // ── GOG Search ────────────────────────────────────────
-      // GET /gog/search?q=Game+Name
+      // GET /gog/search?q=Game+Name&cc=FR&currency=EUR
       if (path === '/gog/search') {
         const query = url.searchParams.get('q');
+        const cc = url.searchParams.get('cc') || 'us';
+        const currency = url.searchParams.get('currency') || 'USD';
+
         if (!query) return jsonResponse({ error: 'Missing ?q=' }, 400);
 
-        const gogUrl = `https://catalog.gog.com/v1/catalog?query=${encodeURIComponent(query)}&limit=1`;
+        const gogUrl = `https://catalog.gog.com/v1/catalog?query=${encodeURIComponent(query)}&limit=5&countryCode=${cc.toUpperCase()}&currencyCode=${currency.toUpperCase()}&locale=en-US&productType=in,game,pack`;
         const res = await fetch(gogUrl, {
-          cf: { cacheEverything: true, cacheTtl: 604800 },
+          cf: { cacheEverything: true, cacheTtl: 86400 },
         } as RequestInit);
 
         if (!res.ok) {
@@ -316,18 +319,39 @@ export default {
 
         const data = await res.json() as any;
         if (data.products && data.products.length > 0) {
-          const product = data.products[0];
+          const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+          const qClean = clean(query);
+          
+          let bestMatch: any = null;
+          for (const p of data.products) {
+            const tClean = clean(p.title || '');
+            if (qClean === tClean) {
+              bestMatch = p;
+              break;
+            }
+            if (!bestMatch && (tClean.startsWith(qClean + ' ') || tClean.endsWith(' ' + qClean) || tClean.includes(' ' + qClean + ' '))) {
+              bestMatch = p;
+            }
+          }
 
-          // Verify title matches to avoid false positives (e.g. searching "Portal 2" finding "Bridge Constructor Portal")
-          const queryLower = query.toLowerCase().replace(/[^a-z0-9]/g, '');
-          const productTitleLower = (product.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (bestMatch) {
+            const product = bestMatch;
+            const priceInfo = product.price ? {
+              amount: parseFloat(product.price.finalMoney.amount),
+              baseAmount: parseFloat(product.price.baseMoney.amount),
+              currency: product.price.finalMoney.currency,
+              discount: parseFloat(product.price.finalMoney.discount || '0')
+            } : undefined;
 
-          if (queryLower === productTitleLower || productTitleLower.includes(queryLower)) {
-            return new Response(JSON.stringify({ found: true, storeLink: product.storeLink }), {
+            return new Response(JSON.stringify({ 
+              found: true, 
+              storeLink: product.storeLink,
+              price: priceInfo
+            }), {
               status: 200,
               headers: {
                 'Content-Type': 'application/json',
-                'Cache-Control': 'public, max-age=604800',
+                'Cache-Control': 'public, max-age=86400',
                 ...CORS_HEADERS,
               },
             });
@@ -338,7 +362,74 @@ export default {
           status: 200,
           headers: {
             'Content-Type': 'application/json',
-            'Cache-Control': 'public, max-age=604800',
+            'Cache-Control': 'public, max-age=86400',
+            ...CORS_HEADERS,
+          },
+        });
+      }
+
+      // POST /gog/search-batch
+      if (path === '/gog/search-batch' && request.method === 'POST') {
+        const body = await request.json() as { names: string[], cc: string, currency: string };
+        const { names, cc = 'us', currency = 'USD' } = body;
+
+        if (!Array.isArray(names)) return jsonResponse({ error: 'Missing names array' }, 400);
+
+        const results = await Promise.all(names.map(async (query) => {
+          const gogUrl = `https://catalog.gog.com/v1/catalog?query=${encodeURIComponent(query)}&limit=5&countryCode=${cc.toUpperCase()}&currencyCode=${currency.toUpperCase()}&locale=en-US&productType=in,game,pack`;
+          
+          try {
+            const res = await fetch(gogUrl, {
+              cf: { cacheEverything: true, cacheTtl: 86400 },
+            } as RequestInit);
+
+            if (!res.ok) return { name: query, error: true };
+
+            const data = await res.json() as any;
+            if (data.products && data.products.length > 0) {
+              const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+              const qClean = clean(query);
+
+              let bestMatch: any = null;
+              for (const p of data.products) {
+                const tClean = clean(p.title || '');
+                if (qClean === tClean) {
+                  bestMatch = p;
+                  break;
+                }
+                if (!bestMatch && (tClean.startsWith(qClean + ' ') || tClean.endsWith(' ' + qClean) || tClean.includes(' ' + qClean + ' '))) {
+                  bestMatch = p;
+                }
+              }
+
+              if (bestMatch) {
+                const product = bestMatch;
+                const priceInfo = product.price ? {
+                  amount: parseFloat(product.price.finalMoney.amount),
+                  baseAmount: parseFloat(product.price.baseMoney.amount),
+                  currency: product.price.finalMoney.currency,
+                  discount: parseFloat(product.price.finalMoney.discount || '0')
+                } : undefined;
+
+                return { 
+                  name: query,
+                  found: true, 
+                  storeLink: product.storeLink,
+                  price: priceInfo
+                };
+              }
+            }
+            return { name: query, found: false };
+          } catch (e) {
+            return { name: query, error: true };
+          }
+        }));
+
+        return new Response(JSON.stringify(results), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=86400',
             ...CORS_HEADERS,
           },
         });
