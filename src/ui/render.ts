@@ -29,7 +29,7 @@ export function renderLanding(
   }>('tpl-landing');
 
   refs.settingsBtn.addEventListener('click', onSettings);
-  
+
   if (initialSteamId) refs.input.value = initialSteamId;
 
   refs.form.addEventListener('submit', (e) => {
@@ -62,10 +62,10 @@ export function renderLoading(state: AppState): void {
   if (state.loadingTotal > 0) {
     progressArea.style.display = 'flex';
     const pct = Math.round((state.loadingProgress / state.loadingTotal) * 100);
-    
+
     const fill = container.querySelector('[data-ref="progressFill"]') as HTMLElement;
     const label = container.querySelector('[data-ref="progressLabel"]')!;
-    
+
     fill.style.width = `${pct}%`;
     label.textContent = t('loading_games_enriched', {
       count: state.loadingProgress,
@@ -220,7 +220,7 @@ function renderStatsBar(
   currency: string
 ): HTMLElement {
   const { element, refs } = view<{ container: HTMLElement }>('tpl-stats-bar');
-  
+
   const data = [
     { icon: '🎮', labelKey: 'stats_games', value: stats.totalGames.toString() },
     { icon: '⏱️', labelKey: 'stats_main', value: formatHours(stats.totalMainHours) },
@@ -286,14 +286,14 @@ function renderFilterAndSort(
     const btn = document.createElement('button');
     btn.className = `sort-btn ${isActive ? 'active' : ''}`;
     btn.textContent = t(opt.labelKey);
-    
+
     if (isActive) {
       const arrow = document.createElement('span');
       arrow.className = 'sort-arrow';
       arrow.textContent = state.sort.direction === 'asc' ? ' ↑' : ' ↓';
       btn.appendChild(arrow);
     }
-    
+
     btn.addEventListener('click', () => onSort(opt.value));
     refs.sortContainer.appendChild(btn);
   });
@@ -326,7 +326,7 @@ function renderGameGrid(sortedGames: GameEntry[], currency: string): HTMLElement
 
   const { element, refs } = view<{ container: HTMLElement }>('tpl-grid');
   const container = refs.container;
-  
+
   const BATCH_SIZE = 60;
   let cursor = 0;
 
@@ -338,13 +338,13 @@ function renderGameGrid(sortedGames: GameEntry[], currency: string): HTMLElement
   const renderNextBatch = () => {
     const end = Math.min(cursor + BATCH_SIZE, sortedGames.length);
     const fragment = document.createDocumentFragment();
-    
+
     for (; cursor < end; cursor++) {
       fragment.appendChild(createGameCard(sortedGames[cursor], currency));
     }
-    
+
     container.insertBefore(fragment, sentinel);
-    
+
     if (cursor >= sortedGames.length) {
       sentinel.remove();
       if (activeGridObserver) activeGridObserver.disconnect();
@@ -392,8 +392,10 @@ function createGameCard(game: GameEntry, currency: string): HTMLElement {
     appendBadge(refs.badges, 'status-badge badge-demo-avail', t('game_demo_avail'));
   }
 
-  if (game.discountPercent > 0) {
-    appendBadge(refs.badges, 'discount-badge', `-${game.discountPercent}%`);
+  const maxDiscount = Math.max(game.discountPercent || 0, game.gogDiscountPercent || 0);
+  if (maxDiscount > 0) {
+    const isGogOnly = (game.gogDiscountPercent || 0) > 0 && (game.discountPercent || 0) === 0;
+    appendBadge(refs.badges, 'discount-badge', `-${maxDiscount}%${isGogOnly ? ' (GOG)' : ''}`);
   }
 
   // Genres
@@ -433,6 +435,42 @@ function createGameCard(game: GameEntry, currency: string): HTMLElement {
     refs.priceRow.innerHTML = `<span class="price-unknown">${t('game_price_na')}</span>`;
   }
 
+  // GOG Price Addition
+  const isGogPriceSame = game.priceFinal !== null &&
+    game.gogPriceFinal === game.priceFinal &&
+    (game.gogPriceCurrency || currency) === currency;
+
+  if (game.gogPriceFinal !== null && game.gogPriceFinal !== undefined && !isGogPriceSame) {
+    const sep = document.createElement('span');
+    sep.style.margin = '0 0.5rem';
+    sep.style.color = 'var(--bg-tertiary)';
+    sep.textContent = '|';
+    refs.priceRow.appendChild(sep);
+
+    const gogLabel = document.createElement('span');
+    gogLabel.textContent = 'GOG ';
+    gogLabel.style.fontSize = '0.75rem';
+    gogLabel.style.textTransform = 'uppercase';
+    gogLabel.style.letterSpacing = '1px';
+    gogLabel.style.color = 'var(--accent-primary)';
+    gogLabel.style.marginRight = '0.25rem';
+    refs.priceRow.appendChild(gogLabel);
+
+    if (game.gogDiscountPercent > 0 && game.gogPriceInitial !== null) {
+      const orig = document.createElement('span');
+      orig.className = 'price-original';
+      orig.textContent = formatCurrency(game.gogPriceInitial, game.gogPriceCurrency || currency);
+      refs.priceRow.appendChild(orig);
+    }
+    const current = document.createElement('span');
+    current.className = game.gogDiscountPercent > 0 ? 'price-sale' : 'price-current';
+    current.textContent = formatCurrency(game.gogPriceFinal, game.gogPriceCurrency || currency);
+    if (game.gogPriceCurrency !== currency && game.gogPriceCurrency) {
+      current.title = `Currency: ${game.gogPriceCurrency}`;
+    }
+    refs.priceRow.appendChild(current);
+  }
+
   // HLTB
   if (game.hltbStatus === 'found') {
     if (game.hltbMain) refs.hltb.appendChild(createDurationRow('Main', game.hltbMain, 'main'));
@@ -452,6 +490,16 @@ function createGameCard(game: GameEntry, currency: string): HTMLElement {
   steamLnk.className = 'game-link steam-link';
   steamLnk.textContent = t('game_link_steam');
   refs.links.appendChild(steamLnk);
+
+  if (game.gogStatus === 'found' && game.gogUrl) {
+    const gogLnk = document.createElement('a');
+    gogLnk.href = game.gogUrl;
+    gogLnk.target = '_blank';
+    gogLnk.rel = 'noopener';
+    gogLnk.className = 'game-link gog-link';
+    gogLnk.textContent = t('game_link_gog');
+    refs.links.appendChild(gogLnk);
+  }
 
   if (game.hltbId) {
     const hltbLnk = document.createElement('a');
@@ -580,7 +628,7 @@ export function renderStatsModal(
   refs.overlay.addEventListener('click', (e) => { if (e.target === refs.overlay) close(); });
 
   const data = prepareStats(games, currency);
-  
+
   const stats = [
     { icon: '⏳', label: t('insights_avg_price_hr'), value: formatCurrency(data.insights.avgPricePerHour, currency) },
     { icon: '📅', label: t('insights_oldest_entry'), value: String(data.insights.oldestItemYear) },
@@ -604,6 +652,10 @@ export function renderStatsModal(
     new Chart('#chart-price', { title: t('insights_chart_price', { currency }), data: data.priceDist, type: 'bar', height: 250, colors: ['#a78bfa'], barOptions: { spaceRatio: 0.2 } });
     new Chart('#chart-genre', { title: t('insights_chart_genre'), data: data.genreDist, type: 'pie', height: 250, colors: ['#6366f1', '#a78bfa', '#f59e0b', '#34d399', '#f87171', '#fbbf24', '#ec4899', '#06b6d4'], truncateLegends: true });
     new Chart('#chart-year', { title: t('insights_chart_year'), data: data.yearDist, type: 'line', height: 250, colors: ['#34d399'], lineOptions: { hideDots: 0, regionFill: 1 } });
+
+    if (data.storeCompare.datasets[0].values.some(v => v > 0)) {
+      new Chart('#chart-store', { title: t('insights_chart_store'), data: data.storeCompare, type: 'pie', height: 250, colors: ['#1a9fff', '#86328a', '#929292'], truncateLegends: true });
+    }
   }, 50);
 }
 

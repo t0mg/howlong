@@ -19,6 +19,7 @@ const translations: Record<Locale, Record<string, string>> = {
     loading_fetching_details: 'Fetching game details...',
     loading_fetching_details_count: 'Fetching details for {count} games...',
     loading_enriching: 'Enriching with HowLongToBeat data...',
+    loading_enriching_gog: 'Enriching with GOG data...',
 
     error_wishlist_private: 'Wishlist is empty or private.',
     error_no_details: 'Could not fetch details for any games in your wishlist.',
@@ -77,6 +78,7 @@ const translations: Record<Locale, Record<string, string>> = {
     insights_chart_price: 'Price Distribution ({currency})',
     insights_chart_genre: 'Popular Genres',
     insights_chart_year: 'Wishlist Entry Timeline',
+    insights_chart_store: 'Best Price: Steam vs GOG',
 
     game_coming_soon: 'Coming Soon',
     game_demo: 'Demo',
@@ -90,6 +92,7 @@ const translations: Record<Locale, Record<string, string>> = {
     game_hltb_pending: 'Looking up...',
     game_link_steam: 'Steam',
     game_link_hltb: 'HLTB',
+    game_link_gog: 'GOG',
   }
 };
 

@@ -15,6 +15,7 @@ export interface StatsBreakdown {
   priceDist: ChartData;
   genreDist: ChartData;
   yearDist: ChartData;
+  storeCompare: ChartData;
   insights: {
     avgPricePerHour: number;
     totalPotentialHours: number;
@@ -63,6 +64,10 @@ export function prepareStats(games: GameEntry[], currencyCode = 'USD'): StatsBre
   let demoCount = 0;
   let hasDemoCount = 0;
 
+  let steamCheaper = 0;
+  let gogCheaper = 0;
+  let equalPrice = 0;
+
   games.forEach(g => {
     if (g.isComingSoon) comingSoonCount++;
     if (g.isDemo) demoCount++;
@@ -87,6 +92,15 @@ export function prepareStats(games: GameEntry[], currencyCode = 'USD'): StatsBre
       totalCost += p;
       const bucket = priceBuckets.find(b => !b.isFree && p >= b.min && p < b.max);
       if (bucket) bucket.count++;
+    }
+
+    // Store Compare
+    const steamP = g.isFree ? 0 : g.priceFinal;
+    const gogP = g.gogPriceFinal;
+    if (steamP !== null && gogP !== null && gogP !== undefined) {
+      if (steamP < gogP) steamCheaper++;
+      else if (gogP < steamP) gogCheaper++;
+      else equalPrice++;
     }
 
     // Genres
@@ -142,6 +156,10 @@ export function prepareStats(games: GameEntry[], currencyCode = 'USD'): StatsBre
     yearDist: {
       labels: yearLabels,
       datasets: [{ values: yearValues }]
+    },
+    storeCompare: {
+      labels: ['Steam Cheaper', 'GOG Cheaper', 'Same Price'],
+      datasets: [{ values: [steamCheaper, gogCheaper, equalPrice] }]
     },
     insights: {
       avgPricePerHour: totalHours > 0 ? totalCost / totalHours : 0,

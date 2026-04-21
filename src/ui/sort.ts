@@ -50,10 +50,16 @@ function getFieldValue(game: GameEntry, field: SortField): string | number | nul
       return game.hltbMainExtra ?? game.hltbMain ?? game.hltbCompletionist;
     case 'hltbCompletionist':
       return game.hltbCompletionist ?? game.hltbMainExtra ?? game.hltbMain;
-    case 'priceFinal':
-      return game.isFree ? 0 : game.priceFinal;
+    case 'priceFinal': {
+      const steamPrice = game.isFree ? 0 : game.priceFinal;
+      const gogPrice = game.gogPriceFinal;
+      if (steamPrice !== null && gogPrice !== null) return Math.min(steamPrice, gogPrice);
+      if (steamPrice !== null) return steamPrice;
+      if (gogPrice !== null) return gogPrice;
+      return null;
+    }
     case 'discountPercent':
-      return game.discountPercent;
+      return Math.max(game.discountPercent || 0, game.gogDiscountPercent || 0);
     case 'priority':
       return game.priority;
     case 'dateAdded':

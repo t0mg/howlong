@@ -39,6 +39,19 @@ export interface SteamPriceOverview {
   final_formatted: string;
 }
 
+// ── GOG Types ────────────────────────────────────────────────
+
+export interface GOGResult {
+  found: boolean;
+  storeLink?: string;
+  price?: {
+    amount: number;
+    baseAmount: number;
+    currency: string;
+    discount: number;
+  };
+}
+
 // ── HLTB Types ───────────────────────────────────────────────
 
 export interface HLTBResult {
@@ -80,8 +93,16 @@ export interface GameEntry {
   hltbMainExtra: number | null;  // hours
   hltbCompletionist: number | null; // hours
 
+  // GOG
+  gogUrl: string | null;
+  gogPriceCurrency: string | null;
+  gogPriceInitial: number | null;
+  gogPriceFinal: number | null;
+  gogDiscountPercent: number;
+
   // Status
   hltbStatus: 'pending' | 'found' | 'not_found';
+  gogStatus: 'pending' | 'found' | 'not_found';
   priceStatus: 'pending' | 'found' | 'not_found' | 'free' | 'stale' | 'unavailable';
   isStale?: boolean;
   dateAdded: number;
