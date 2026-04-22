@@ -1,0 +1,586 @@
+/* ═══════════════════════════════════════════════════════════════
+   How Long to Clear — Dashboard (Header, Stats, Controls, Grid)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Dashboard Layout ───────────────────────────────────────── */
+
+.dashboard-shell>[data-ref$="Region"] {
+  display: contents;
+}
+
+/* ── Dashboard Header ──────────────────────────────────────── */
+
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 2rem;
+  background: var(--bg-surface);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--bg-glass-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  animation: slideDown 400ms ease-out;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.header-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header-steam-id {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+/* ── Stats Bar ─────────────────────────────────────────────── */
+
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  padding: 1.25rem 2rem;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 1rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-glass-border);
+  border-radius: var(--radius);
+  transition: all var(--transition);
+}
+
+.stat-card:hover {
+  background: var(--bg-surface-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.stat-icon {
+  font-size: 1.4rem;
+}
+
+.stat-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+/* ── Filter & Sort Controls ────────────────────────────────── */
+
+.controls-container {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  border-bottom: 1px solid var(--bg-glass-border);
+  background: var(--bg-surface);
+  backdrop-filter: blur(16px);
+  position: sticky;
+  top: 80px;
+  z-index: 90;
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.filter-select {
+  background: var(--bg-glass);
+  border: 1px solid var(--bg-glass-border);
+  color: var(--text-primary);
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.85rem;
+  outline: none;
+  cursor: pointer;
+  transition: all var(--transition);
+  min-width: 160px;
+}
+
+.filter-select.active {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.filter-select:hover {
+  border-color: var(--accent);
+  background: var(--bg-surface-hover);
+}
+
+.filter-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.sort-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+  margin-right: 0.25rem;
+}
+
+.sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.85rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--bg-glass-border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition);
+}
+
+.sort-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+  background: var(--bg-surface);
+}
+
+.sort-btn.active {
+  color: white;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.sort-arrow {
+  font-size: 0.7rem;
+}
+
+/* ── Match Info ────────────────────────────────────────────── */
+
+.match-info-container {
+  padding: 0.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.match-info {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.match-warning {
+  font-size: 0.75rem;
+  color: var(--warning);
+  font-weight: 500;
+  animation: fadeIn 300ms ease-out;
+}
+
+/* ── Game Grid ─────────────────────────────────────────────── */
+
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem 2rem;
+  animation: fadeIn 400ms ease-out;
+}
+
+.grid-sentinel {
+  grid-column: 1 / -1;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* ── Game Card ─────────────────────────────────────────────── */
+
+.game-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-glass-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: all var(--transition);
+  display: flex;
+  flex-direction: column;
+}
+
+.game-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+.game-card-img {
+  position: relative;
+  aspect-ratio: 460 / 215;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.game-card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 400ms ease;
+}
+
+.game-card:hover .game-card-img img {
+  transform: scale(1.05);
+}
+
+.game-card-badges {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  pointer-events: none;
+}
+
+.status-badge {
+  background: var(--bg-surface);
+  backdrop-filter: blur(8px);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid var(--bg-glass-border);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+.badge-coming-soon {
+  background: rgba(99, 102, 241, 0.85);
+  border-color: rgba(167, 139, 250, 0.4);
+}
+
+.badge-demo {
+  background: rgba(100, 116, 139, 0.85);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.badge-demo-avail {
+  border-color: rgba(52, 211, 153, 0.4);
+  color: var(--success);
+}
+
+.discount-badge {
+  background: var(--sale-green);
+  color: #000;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+}
+
+.game-card-info {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex: 1;
+}
+
+.game-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.game-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: -0.2rem;
+}
+
+.genre-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.2rem;
+}
+
+.genre-chip {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-glass);
+  border: 1px solid var(--bg-glass-border);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* ── Price ──────────────────────────────────────────────────── */
+
+.price-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.price-current {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.price-current.stale {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.85rem;
+}
+
+.price-sale {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--sale-green);
+}
+
+.price-original {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.price-free,
+.price-status {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--success);
+}
+
+.price-status {
+  color: var(--accent-secondary);
+}
+
+.price-unknown {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.price-unavailable {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+}
+
+.price-gog-sep {
+  margin: 0 0.5rem;
+  color: var(--bg-tertiary);
+}
+
+.price-gog-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent);
+  margin-right: 0.25rem;
+}
+
+/* ── HLTB Duration Bars ────────────────────────────────────── */
+
+.hltb-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.2rem;
+}
+
+.duration-row {
+  display: grid;
+  grid-template-columns: 38px 1fr 42px;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.duration-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.duration-bar-container {
+  height: 6px;
+  background: var(--bg-secondary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.duration-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 4px;
+}
+
+.duration-bar-main {
+  background: linear-gradient(90deg, var(--bar-main), #818cf8);
+}
+
+.duration-bar-extra {
+  background: linear-gradient(90deg, var(--bar-extra), #c4b5fd);
+}
+
+.duration-bar-comp {
+  background: linear-gradient(90deg, var(--bar-comp), #fcd34d);
+}
+
+.duration-hours {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.hltb-no-data {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 0.25rem 0;
+}
+
+.hltb-pending {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* ── Game Links ────────────────────────────────────────────── */
+
+.game-links {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--bg-glass-border);
+}
+
+.game-link {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--bg-glass-border);
+  color: var(--text-secondary);
+  transition: all var(--transition);
+}
+
+.game-link:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+  background: var(--bg-glass);
+}
+
+.steam-link:hover {
+  border-color: #1b9fff;
+  color: #1b9fff;
+}
+
+.gog-link:hover {
+  border-color: var(--accent-secondary);
+  color: var(--accent-secondary);
+}
+
+/* ── Lucky Modal ──────────────────────────────────────────── */
+
+.lucky-content {
+  margin: 1.5rem 0;
+}
+
+.lucky-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.lucky-card {
+  margin: 0 auto;
+  max-width: 100%;
+}
+
+.lucky-empty-state {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+/* Custom button for insights */
+.btn-insights {
+  color: var(--accent-secondary);
+  border-color: rgba(167, 139, 250, 0.3);
+}
+
+.btn-insights:hover {
+  background: rgba(167, 139, 250, 0.1);
+  border-color: var(--accent-secondary);
+  color: white;
+  box-shadow: 0 0 15px rgba(167, 139, 250, 0.2);
+}

@@ -5,25 +5,36 @@ export interface ViewResult<T = Record<string, HTMLElement>> {
   refs: T;
 }
 
+// ── Shared SVG Icons ─────────────────────────────────────────
+
+export const ICON_SETTINGS = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
+
+export const ICON_INSIGHTS = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83M22 12A10 10 0 0 0 12 2v10z"/></svg>`;
+
+export const ICON_LUCKY = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M8 8h.01"/><path d="M16 8h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/><path d="M12 12h.01"/></svg>`;
+
+// ── Shared Template Fragments ────────────────────────────────
+
+export const TPL_STAT_CARD = `
+  <div class="stat-card">
+    <span class="stat-icon" data-ref="icon"></span>
+    <span class="stat-value" data-ref="value"></span>
+    <span class="stat-label" data-ref="label"></span>
+  </div>`;
+
 /**
- * Loads a template by ID, resolves recursive nesting via data-tpl,
- * applies translations, and collects references.
+ * Creates a view from an HTML template string.
+ * Processes data-t (translations), data-t-placeholder, data-t-title
+ * attributes, and collects data-ref references.
  */
-export function view<T = Record<string, HTMLElement>>(templateId: string): ViewResult<T> {
-  const template = document.getElementById(templateId) as HTMLTemplateElement;
-  if (!template) {
-    throw new Error(`Template "${templateId}" not found in document.`);
-  }
+export function html<T = Record<string, HTMLElement>>(templateStr: string): ViewResult<T> {
+  const tpl = document.createElement('template');
+  tpl.innerHTML = templateStr.trim();
+  const fragment = tpl.content.cloneNode(true) as DocumentFragment;
 
-  const fragment = template.content.cloneNode(true) as DocumentFragment;
-
-  // 1. Resolve nested templates recursively
-  resolveNesting(fragment);
-
-  // 2. Process all nodes for translations and refs
   const refs = {} as any;
   const walker = document.createTreeWalker(fragment, NodeFilter.SHOW_ELEMENT);
-  
+
   while (walker.nextNode()) {
     const el = walker.currentNode as HTMLElement;
 
@@ -50,59 +61,4 @@ export function view<T = Record<string, HTMLElement>>(templateId: string): ViewR
 
   const element = fragment.firstElementChild as HTMLElement;
   return { element, refs };
-}
-
-/**
- * Recursively replaces elements having [data-tpl] with the content
- * of the referenced template.
- * Attributes on the placeholder are used to hydrate the nested template:
- * - data-ref-[name]="newName": Remaps an internal ref to a new name.
- * - data-t-[name]="key": Sets a translation key for an internal ref.
- * - Other data-* attributes are copied to the root of the nested template.
- */
-function resolveNesting(parent: ParentNode) {
-  let placeholder = parent.querySelector('[data-tpl]');
-  
-  while (placeholder) {
-    const nestedId = placeholder.getAttribute('data-tpl')!;
-    const nestedTpl = document.getElementById(nestedId) as HTMLTemplateElement;
-    
-    if (!nestedTpl) {
-      throw new Error(`Nested template "${nestedId}" not found.`);
-    }
-
-    const nestedClone = nestedTpl.content.cloneNode(true) as DocumentFragment;
-    const nestedRoot = nestedClone.firstElementChild as HTMLElement;
-
-    if (nestedRoot) {
-      for (const attr of Array.from(placeholder.attributes)) {
-        if (attr.name === 'data-tpl') continue;
-
-        if (attr.name.startsWith('data-ref-')) {
-          // Remap internal ref: data-ref-action="myAction" -> finds data-ref="action" inside
-          const targetRef = attr.name.slice(9);
-          const targetEl = nestedClone.querySelector(`[data-ref="${targetRef}"]`);
-          if (targetEl) targetEl.setAttribute('data-ref', attr.value);
-        } else if (attr.name.startsWith('data-t-')) {
-          // Pass translation key: data-t-label="my_key" -> finds data-ref="label" inside
-          const targetRef = attr.name.slice(7);
-          const targetEl = nestedClone.querySelector(`[data-ref="${targetRef}"]`);
-          if (targetEl) targetEl.setAttribute('data-t', attr.value);
-        } else {
-          // Standard attribute inheritance to the nested root
-          if (attr.name === 'class') {
-            nestedRoot.classList.add(...attr.value.split(' '));
-          } else {
-            nestedRoot.setAttribute(attr.name, attr.value);
-          }
-        }
-      }
-    }
-
-    // Replace placeholder with the cloned fragment
-    placeholder.parentNode?.replaceChild(nestedClone, placeholder);
-
-    // Look for next placeholder to handle recursive nesting
-    placeholder = parent.querySelector('[data-tpl]');
-  }
 }

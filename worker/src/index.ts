@@ -3,8 +3,9 @@
  *
  * A Cloudflare Worker that proxies requests to:
  *   - Steam Wishlist API
- *   - Steam App Details (price) API
- *   - HowLongToBeat search (via the howlongtobeat npm package)
+ *   - Steam App Details API (prices and metadata)
+ *   - HowLongToBeat API
+ *   - GOG Catalog API (search and prices)
  *
  * Deploy with: npx wrangler deploy
  */
@@ -87,23 +88,32 @@ async function handlePricesBatch(url: URL): Promise<Response> {
   });
 }
 
-async function handleMetadata(appId: string): Promise<Response> {
+async function handleMetadata(appId: string, ctx: ExecutionContext): Promise<Response> {
   const steamUrl = `https://store.steampowered.com/api/appdetails?appids=${appId}&filters=basic,genres,demos,release_date`;
+  const cacheKey = new Request(`https://steam-meta-cache.internal/v3/${appId}`);
+  const cache = caches.default;
 
   console.log(`[Worker] Fetching Metadata: ${appId}`);
 
-  // Try API first
+  // 1. Check manual cache first (only successful results are stored here)
+  const cached = await cache.match(cacheKey);
+  if (cached) {
+    console.log(`[Worker] Metadata cache HIT for ${appId}`);
+    const response = new Response(cached.body, cached);
+    for (const [key, value] of Object.entries(CORS_HEADERS)) {
+      response.headers.set(key, value);
+    }
+    return response;
+  }
+
+  // 2. Try API (no cf cache — we manage caching ourselves)
   let res = await fetch(steamUrl, {
-    cf: {
-      cacheEverything: true,
-      cacheTtl: 604800, // 7 days for metadata
-      cacheKey: `steam-meta-v3-${appId}`,
-    },
     headers: { 'User-Agent': 'Mozilla/5.0' },
-  } as RequestInit);
+  });
 
   // 429/403 or success: false? Try scraping
   let data: any = null;
+  let isFallback = false;
   if (res.ok) {
     const raw = await res.json() as any;
     if (raw[appId]?.success) {
@@ -113,6 +123,7 @@ async function handleMetadata(appId: string): Promise<Response> {
 
   // Fallback: Scrape HTML for title
   if (!data) {
+    isFallback = true;
     console.warn(`[Worker] AppDetails failed for ${appId}. Falling back to HTML scraping...`);
     const storeUrl = `https://store.steampowered.com/app/${appId}`;
     const htmlRes = await fetch(storeUrl, {
@@ -131,13 +142,17 @@ async function handleMetadata(appId: string): Promise<Response> {
         const isComingSoon = html.includes('game_area_comingsoon') || html.includes('Ce jeu n\'est pas encore disponible');
         const hasDemo = html.includes('demo_above_purchase') || html.includes('game_area_purchase_demo') || html.includes('Download') && html.includes('Demo');
 
+        // Extract the real header image URL from og:image meta tag (includes content hash)
+        const ogImageMatch = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i);
+        const headerImage = ogImageMatch?.[1] || `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg`;
+
         data = {
           [appId]: {
             success: true,
             _is_fallback: true,
             data: {
               name: title,
-              header_image: `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg`,
+              header_image: headerImage,
               type: 'game',
               release_date: {
                 coming_soon: isComingSoon,
@@ -155,14 +170,29 @@ async function handleMetadata(appId: string): Promise<Response> {
     return jsonResponse({ error: 'Failed to fetch metadata' }, res.status || 500);
   }
 
-  return new Response(JSON.stringify(data), {
+  const response = new Response(JSON.stringify(data), {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
-      'Cache-Control': 'public, max-age=86400', // Browser cache 24h
+      // Fallback results: don't cache — let the next request retry the real API
+      'Cache-Control': isFallback ? 'no-cache, no-store' : 'public, max-age=86400',
       ...CORS_HEADERS,
     },
   });
+
+  // Only cache successful API results on the edge (not fallbacks)
+  if (!isFallback) {
+    const toCache = new Response(JSON.stringify(data), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 's-maxage=604800', // 7 days on edge
+      },
+    });
+    ctx.waitUntil(cache.put(cacheKey, toCache));
+  }
+
+  return response;
 }
 
 async function handleHltbSearch(url: URL, ctx: ExecutionContext): Promise<Response> {
@@ -307,7 +337,7 @@ export default {
       // GET /steam/metadata/:appId
       const metaMatch = path.match(/^\/steam\/metadata\/(\d+)$/);
       if (metaMatch) {
-        return await handleMetadata(metaMatch[1]);
+        return await handleMetadata(metaMatch[1], ctx);
       }
 
       // ── HLTB Search ───────────────────────────────────────

@@ -1,0 +1,164 @@
+/* ═══════════════════════════════════════════════════════════════
+   How Long to Clear — Landing, Loading, Error
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Landing Page ──────────────────────────────────────────── */
+
+.landing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  text-align: center;
+  animation: fadeIn 600ms ease-out;
+}
+
+.landing-logo {
+  margin-bottom: 1.5rem;
+  animation: float 3s ease-in-out infinite;
+}
+
+.landing-logo svg {
+  filter: drop-shadow(0 0 20px var(--accent-glow));
+}
+
+.landing-settings {
+  position: absolute;
+  top: 1.25rem;
+  right: 2rem;
+}
+
+.landing-title {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.75rem;
+}
+
+.landing-subtitle {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  max-width: 540px;
+  margin-bottom: 2.5rem;
+  line-height: 1.7;
+}
+
+.landing-form {
+  width: 100%;
+  max-width: 560px;
+  margin-bottom: 1rem;
+}
+
+/* ── Loading ───────────────────────────────────────────────── */
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  gap: 1.5rem;
+  animation: fadeIn 300ms ease-out;
+}
+
+.loading-message {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+}
+
+.progress-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+.progress-bar {
+  width: 100%;
+  max-width: 400px;
+  height: 6px;
+  background: var(--bg-surface);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-secondary));
+  border-radius: 3px;
+  transition: width 300ms ease-out;
+}
+
+.progress-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* ── Throttling Alert ───────────────────────────────────────── */
+
+.throttled-alert {
+  margin: 1rem 0;
+  padding: 1rem 1.5rem;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.15);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: 440px;
+  animation: fadeIn 300ms ease-out;
+}
+
+.throttled-icon {
+  font-size: 1.5rem;
+}
+
+.throttled-text {
+  flex: 1;
+  text-align: left;
+}
+
+.throttled-title {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--warning);
+}
+
+.throttled-timer {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 800;
+  font-family: monospace;
+  color: white;
+  margin-top: 0.2rem;
+}
+
+/* ── Error ─────────────────────────────────────────────────── */
+
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  gap: 1.5rem;
+  text-align: center;
+  animation: fadeIn 300ms ease-out;
+}
+
+.error-message {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  max-width: 480px;
+}
