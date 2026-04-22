@@ -523,17 +523,13 @@ async function handleClearAppCache() {
   // Clear Service Worker
   if ('serviceWorker' in navigator) {
     const registrations = await navigator.serviceWorker.getRegistrations();
-    for (const registration of registrations) {
-      await registration.unregister();
-    }
+    await Promise.all(registrations.map(registration => registration.unregister()));
   }
 
   console.log('Clearing cache storage...');
   // Clear Cache Storage
   const cacheNames = await caches.keys();
-  for (const name of cacheNames) {
-    await caches.delete(name);
-  }
+  await Promise.all(cacheNames.map(name => caches.delete(name)));
 
   console.log('Reloading...');
   // Force reload
