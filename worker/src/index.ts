@@ -37,6 +37,23 @@ async function handleWishlist(steamId: string): Promise<Response> {
   });
 }
 
+function findBestGOGMatch(products: any[], query: string): any | null {
+  const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  const qClean = clean(query);
+
+  let bestMatch: any = null;
+  for (const p of products) {
+    const tClean = clean(p.title || '');
+    if (qClean === tClean) {
+      return p;
+    }
+    if (!bestMatch && (tClean.startsWith(qClean + ' ') || tClean.endsWith(' ' + qClean) || tClean.includes(' ' + qClean + ' '))) {
+      bestMatch = p;
+    }
+  }
+  return bestMatch;
+}
+
 async function handlePricesBatch(url: URL): Promise<Response> {
   const ids = url.searchParams.get('ids') || '';
   const cc = url.searchParams.get('cc') || 'us';
@@ -319,20 +336,7 @@ export default {
 
         const data = await res.json() as any;
         if (data.products && data.products.length > 0) {
-          const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-          const qClean = clean(query);
-          
-          let bestMatch: any = null;
-          for (const p of data.products) {
-            const tClean = clean(p.title || '');
-            if (qClean === tClean) {
-              bestMatch = p;
-              break;
-            }
-            if (!bestMatch && (tClean.startsWith(qClean + ' ') || tClean.endsWith(' ' + qClean) || tClean.includes(' ' + qClean + ' '))) {
-              bestMatch = p;
-            }
-          }
+          const bestMatch = findBestGOGMatch(data.products, query);
 
           if (bestMatch) {
             const product = bestMatch;
@@ -387,20 +391,7 @@ export default {
 
             const data = await res.json() as any;
             if (data.products && data.products.length > 0) {
-              const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-              const qClean = clean(query);
-
-              let bestMatch: any = null;
-              for (const p of data.products) {
-                const tClean = clean(p.title || '');
-                if (qClean === tClean) {
-                  bestMatch = p;
-                  break;
-                }
-                if (!bestMatch && (tClean.startsWith(qClean + ' ') || tClean.endsWith(' ' + qClean) || tClean.includes(' ' + qClean + ' '))) {
-                  bestMatch = p;
-                }
-              }
+              const bestMatch = findBestGOGMatch(data.products, query);
 
               if (bestMatch) {
                 const product = bestMatch;
