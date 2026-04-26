@@ -89,7 +89,7 @@ async function handlePricesBatch(url: URL): Promise<Response> {
 }
 
 async function handleReviews(appId: string, lang: string, ctx: ExecutionContext): Promise<Response> {
-  const cacheKey = new Request(`https://steam-reviews-cache.internal/v10/${appId}/${lang}`);
+  const cacheKey = new Request(`https://steam-reviews-cache.internal/v1/${appId}/${lang}`);
   const cache = caches.default;
 
   const cached = await cache.match(cacheKey);
