@@ -160,6 +160,7 @@ export interface AppState {
   throttledUntil: number | null; // Timestamp
   regionId: string;
   hltbErrorCount: number;
+  hiddenGames: Set<string>;
 }
 
 export interface SteamRegion {

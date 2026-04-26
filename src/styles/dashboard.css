@@ -548,6 +548,11 @@
   color: var(--accent-secondary);
 }
 
+.hide-link:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
 /* ── Lucky Modal ──────────────────────────────────────────── */
 
 .lucky-content {

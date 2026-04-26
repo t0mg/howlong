@@ -32,11 +32,17 @@ export function sortGames(
 }
 
 /**
- * Filter games by category (genre).
+ * Filter games by category (genre) and hidden status.
  */
-export function filterGames(games: GameEntry[], category: string | null): GameEntry[] {
-  if (!category) return games;
-  return games.filter(g => g.genres && g.genres.includes(category));
+export function filterGames(games: GameEntry[], category: string | null, hiddenAppIds: Set<string>): GameEntry[] {
+  if (category === 'hidden') {
+    return games.filter(g => hiddenAppIds.has(g.appId));
+  }
+
+  const visibleGames = games.filter(g => !hiddenAppIds.has(g.appId));
+
+  if (!category) return visibleGames;
+  return visibleGames.filter(g => g.genres && g.genres.includes(category));
 }
 
 

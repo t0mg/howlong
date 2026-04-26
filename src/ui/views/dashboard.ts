@@ -69,7 +69,8 @@ export function renderDashboard(
   onReset: () => void,
   onSettings: () => void,
   onInsights: () => void,
-  onLucky: () => void
+  onLucky: () => void,
+  onToggleHide: (appId: string, isHidden: boolean) => void
 ): void {
   const app = $('#app');
   let shell = app.querySelector('.dashboard-shell') as HTMLElement;
@@ -93,7 +94,7 @@ export function renderDashboard(
 
   const getRegion = (ref: string) => shell.querySelector(`[data-ref="${ref}"]`) as HTMLElement;
 
-  const filtered = filterGames(state.games, state.filterCategory);
+  const filtered = filterGames(state.games, state.filterCategory, state.hiddenGames);
   const sorted = sortGames(filtered, state.sort.field, state.sort.direction);
   const stats = computeStats(sorted);
   const region = REGION_MAP[state.regionId] || REGION_MAP.us;
@@ -125,7 +126,7 @@ export function renderDashboard(
   // Grid
   const gridRegion = getRegion('gridRegion');
   gridRegion.innerHTML = '';
-  gridRegion.appendChild(renderGameGrid(sorted, currency));
+  gridRegion.appendChild(renderGameGrid(sorted, currency, state.hiddenGames, onToggleHide));
 }
 
 // ── Header ───────────────────────────────────────────────────
@@ -201,6 +202,12 @@ function renderFilterAndSort(
   allOpt.textContent = t('dashboard_filter_all');
   refs.filterSelect.appendChild(allOpt);
 
+  const hiddenOpt = document.createElement('option');
+  hiddenOpt.value = 'hidden';
+  hiddenOpt.textContent = t('dashboard_filter_hidden');
+  if (state.filterCategory === 'hidden') hiddenOpt.selected = true;
+  refs.filterSelect.appendChild(hiddenOpt);
+
   sortedGenres.forEach(genre => {
     const opt = document.createElement('option');
     opt.value = genre;
@@ -268,7 +275,12 @@ function renderMatchInfo(state: AppState, stats: ReturnType<typeof computeStats>
 
 // ── Game Grid ────────────────────────────────────────────────
 
-function renderGameGrid(sortedGames: GameEntry[], currency: string): HTMLElement {
+function renderGameGrid(
+  sortedGames: GameEntry[],
+  currency: string,
+  hiddenGames: Set<string>,
+  onToggleHide: (appId: string, isHidden: boolean) => void
+): HTMLElement {
   if (activeGridObserver) activeGridObserver.disconnect();
 
   const { element, refs } = html<{ container: HTMLElement }>(TPL_GRID);
@@ -287,7 +299,9 @@ function renderGameGrid(sortedGames: GameEntry[], currency: string): HTMLElement
     const fragment = document.createDocumentFragment();
 
     for (; cursor < end; cursor++) {
-      fragment.appendChild(createGameCard(sortedGames[cursor], currency));
+      const game = sortedGames[cursor];
+      const isHidden = hiddenGames.has(game.appId);
+      fragment.appendChild(createGameCard(game, currency, isHidden, onToggleHide));
     }
 
     container.insertBefore(fragment, sentinel);

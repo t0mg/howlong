@@ -25,6 +25,7 @@ const state: AppState = {
   throttledUntil: null,
   regionId: 'us',
   hltbErrorCount: 0,
+  hiddenGames: new Set(),
 };
 
 // ── Boot ─────────────────────────────────────────────────────
@@ -37,6 +38,12 @@ async function init() {
 
   state.regionId = (await getSetting<string>('regionId')) || 'us';
   const lastSteamId = (await getSetting<string>('lastSteamId')) || '';
+
+  // Restore hidden games
+  const savedHidden = await getSetting<string[]>('hiddenGames');
+  if (savedHidden && Array.isArray(savedHidden)) {
+    state.hiddenGames = new Set(savedHidden);
+  }
 
   // Restore last sort and filter
   const lastSort = await getSetting<SortState>('lastSort');
@@ -76,7 +83,7 @@ async function handleFetchWishlist(steamId: string) {
     state.loading = false;
     state.onStop = undefined;
 
-    renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings, handleInsights, handleLucky);
+    renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings, handleInsights, handleLucky, handleToggleHide);
 
   } catch (err: unknown) {
     state.loading = false;
@@ -98,6 +105,11 @@ async function handleSettings() {
     },
     async () => {
       await clearSteamCache();
+      isDirty = true;
+    },
+    async () => {
+      state.hiddenGames.clear();
+      await setSetting('hiddenGames', []);
       isDirty = true;
     },
     () => handleClearAppCache(),
@@ -152,13 +164,34 @@ function handleSort(field: SortField) {
     }
   }
   setSetting('lastSort', state.sort);
-  renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings, handleInsights, handleLucky);
+  renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings, handleInsights, handleLucky, handleToggleHide);
 }
 
 function handleFilter(category: string | null) {
   state.filterCategory = category;
   setSetting('lastFilter', category);
-  renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings, handleInsights, handleLucky);
+  renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings, handleInsights, handleLucky, handleToggleHide);
+}
+
+async function handleToggleHide(appId: string, isCurrentlyHidden: boolean) {
+  if (!isCurrentlyHidden) {
+    const { renderConfirmModal } = await import('./ui/views/modals');
+    renderConfirmModal(
+      t('hide_confirm_title'),
+      t('hide_confirm_desc'),
+      t('hide_confirm_btn'),
+      t('hide_cancel_btn'),
+      async () => {
+        state.hiddenGames.add(appId);
+        await setSetting('hiddenGames', Array.from(state.hiddenGames));
+        renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings, handleInsights, handleLucky, handleToggleHide);
+      }
+    );
+  } else {
+    state.hiddenGames.delete(appId);
+    await setSetting('hiddenGames', Array.from(state.hiddenGames));
+    renderDashboard(state, handleSort, handleFilter, handleReset, handleSettings, handleInsights, handleLucky, handleToggleHide);
+  }
 }
 
 function handleReset() {
@@ -176,7 +209,8 @@ function handleInsights() {
 function handleLucky() {
   const region = REGION_MAP[state.regionId] || REGION_MAP.us;
   import('./ui/render').then(({ renderLuckyModal }) => {
-    renderLuckyModal(state.games, region.currency, () => {});
+    const visibleGames = state.games.filter(g => !state.hiddenGames.has(g.appId));
+    renderLuckyModal(visibleGames, region.currency, () => {});
   });
 }
 
