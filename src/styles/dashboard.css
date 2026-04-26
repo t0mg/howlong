@@ -529,6 +529,9 @@
   border-radius: 999px;
   border: 1px solid var(--bg-glass-border);
   color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: all var(--transition);
 }
 
@@ -546,6 +549,16 @@
 .gog-link:hover {
   border-color: var(--accent-secondary);
   color: var(--accent-secondary);
+}
+
+.hide-link {
+  padding: 0.3rem;
+  aspect-ratio: 1;
+}
+
+.hide-link:hover {
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 /* ── Lucky Modal ──────────────────────────────────────────── */

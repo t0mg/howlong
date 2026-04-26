@@ -1,7 +1,7 @@
 import type { GameEntry } from '../../api/types';
 import { t } from '../i18n';
 import { formatDate, formatHours, formatCurrency } from '../format';
-import { html } from '../template';
+import { html, ICON_HIDE, ICON_SHOW } from '../template';
 
 // ── Templates ────────────────────────────────────────────────
 
@@ -32,7 +32,12 @@ const TPL_DURATION_ROW = `
 
 // ── Game Card ────────────────────────────────────────────────
 
-export function createGameCard(game: GameEntry, currency: string): HTMLElement {
+export function createGameCard(
+  game: GameEntry,
+  currency: string,
+  isHidden?: boolean,
+  onToggleHide?: (appId: string, isHidden: boolean) => void
+): HTMLElement {
   const { element, refs } = html<{
     img: HTMLImageElement;
     badges: HTMLElement;
@@ -89,7 +94,7 @@ export function createGameCard(game: GameEntry, currency: string): HTMLElement {
   }
 
   // Links
-  renderLinks(refs.links, game);
+  renderLinks(refs.links, game, isHidden, onToggleHide);
 
   return element;
 }
@@ -161,7 +166,12 @@ function renderGogPrice(priceRow: HTMLElement, game: GameEntry, currency: string
 
 // ── Links ────────────────────────────────────────────────────
 
-function renderLinks(linksEl: HTMLElement, game: GameEntry): void {
+function renderLinks(
+  linksEl: HTMLElement,
+  game: GameEntry,
+  isHidden?: boolean,
+  onToggleHide?: (appId: string, isHidden: boolean) => void
+): void {
   const steamLnk = document.createElement('a');
   steamLnk.href = `https://store.steampowered.com/app/${game.appId}`;
   steamLnk.target = '_blank';
@@ -188,6 +198,19 @@ function renderLinks(linksEl: HTMLElement, game: GameEntry): void {
     hltbLnk.className = 'game-link hltb-link';
     hltbLnk.textContent = t('game_link_hltb');
     linksEl.appendChild(hltbLnk);
+  }
+
+  if (onToggleHide) {
+    const hideLnk = document.createElement('button');
+    hideLnk.className = 'game-link hide-link';
+    hideLnk.style.background = 'transparent';
+    hideLnk.style.marginLeft = 'auto';
+    hideLnk.innerHTML = isHidden ? ICON_SHOW : ICON_HIDE;
+    const label = isHidden ? t('game_link_unhide') : t('game_link_hide');
+    hideLnk.title = label;
+    hideLnk.setAttribute('aria-label', label);
+    hideLnk.addEventListener('click', () => onToggleHide(game.appId, !!isHidden));
+    linksEl.appendChild(hideLnk);
   }
 }
 

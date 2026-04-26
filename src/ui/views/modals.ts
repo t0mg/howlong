@@ -46,6 +46,13 @@ const TPL_SETTINGS_MODAL = `
         </div>
         <div class="settings-item">
           <div class="settings-item-info">
+            <span class="settings-item-label" data-t="settings_clear_hidden_label"></span>
+            <p class="settings-item-desc" data-t="settings_clear_hidden_desc"></p>
+          </div>
+          <div class="settings-item-action" data-ref="hiddenContainer"></div>
+        </div>
+        <div class="settings-item">
+          <div class="settings-item-info">
             <span class="settings-item-label" data-t="settings_hard_reset_label"></span>
             <p class="settings-item-desc" data-t="settings_hard_reset_desc"></p>
           </div>
@@ -102,11 +109,62 @@ const TPL_LUCKY_MODAL = `
     </div>
   </div>`;
 
+const TPL_CONFIRM_MODAL = `
+  <div class="modal-overlay" data-ref="overlay">
+    <div class="modal-card modal-card-small">
+      <h2 class="modal-title" data-ref="title"></h2>
+      <p class="modal-desc" data-ref="desc"></p>
+
+      <div class="modal-footer modal-footer--split">
+        <button class="btn-ghost" data-ref="cancelBtn"></button>
+        <button class="btn-primary btn-action-danger" data-ref="confirmBtn"></button>
+      </div>
+    </div>
+  </div>`;
+
+// ── Confirm Modal ────────────────────────────────────────────
+
+export function renderConfirmModal(
+  title: string,
+  desc: string,
+  confirmText: string,
+  cancelText: string,
+  onConfirm: () => void
+): void {
+  const { element, refs } = html<{
+    overlay: HTMLElement;
+    title: HTMLElement;
+    desc: HTMLElement;
+    cancelBtn: HTMLButtonElement;
+    confirmBtn: HTMLButtonElement;
+  }>(TPL_CONFIRM_MODAL);
+
+  refs.title.textContent = title;
+  refs.desc.textContent = desc;
+  refs.cancelBtn.textContent = cancelText;
+  refs.confirmBtn.textContent = confirmText;
+
+  const close = () => {
+    element.remove();
+  };
+
+  refs.cancelBtn.addEventListener('click', close);
+  refs.overlay.addEventListener('click', (e) => { if (e.target === refs.overlay) close(); });
+
+  refs.confirmBtn.addEventListener('click', () => {
+    onConfirm();
+    close();
+  });
+
+  document.body.appendChild(element);
+}
+
 // ── Settings Modal ───────────────────────────────────────────
 
 export function renderSettingsModal(
   onClearHLTB: () => void,
   onClearSteam: () => void,
+  onClearHidden: () => void,
   onHardReset: () => void,
   onRegionChange: (regionId: string) => void,
   onLocaleChange: (localeId: string) => void,
@@ -121,6 +179,7 @@ export function renderSettingsModal(
     langContainer: HTMLElement;
     hltbContainer: HTMLElement;
     steamContainer: HTMLElement;
+    hiddenContainer: HTMLElement;
     resetContainer: HTMLElement;
   }>(TPL_SETTINGS_MODAL);
 
@@ -176,6 +235,14 @@ export function renderSettingsModal(
     steamBtn.classList.add('btn-action-disabled');
   });
   refs.steamContainer.appendChild(steamBtn);
+
+  const hiddenBtn = createActionBtn(t('settings_clear_hidden_btn'), 'btn-action-secondary', () => {
+    onClearHidden();
+    hiddenBtn.textContent = t('settings_cleared');
+    hiddenBtn.disabled = true;
+    hiddenBtn.classList.add('btn-action-disabled');
+  });
+  refs.hiddenContainer.appendChild(hiddenBtn);
 
   const resetBtn = createActionBtn(t('settings_hard_reset_btn'), 'btn-action-danger', () => {
     if (confirm(t('settings_hard_reset_confirm'))) {
