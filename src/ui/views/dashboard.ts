@@ -202,11 +202,13 @@ function renderFilterAndSort(
   allOpt.textContent = t('dashboard_filter_all');
   refs.filterSelect.appendChild(allOpt);
 
-  const hiddenOpt = document.createElement('option');
-  hiddenOpt.value = 'hidden';
-  hiddenOpt.textContent = t('dashboard_filter_hidden');
-  if (state.filterCategory === 'hidden') hiddenOpt.selected = true;
-  refs.filterSelect.appendChild(hiddenOpt);
+  if (state.hiddenGames.size > 0 || state.filterCategory === 'hidden') {
+    const hiddenOpt = document.createElement('option');
+    hiddenOpt.value = 'hidden';
+    hiddenOpt.textContent = t('dashboard_filter_hidden');
+    if (state.filterCategory === 'hidden') hiddenOpt.selected = true;
+    refs.filterSelect.appendChild(hiddenOpt);
+  }
 
   sortedGenres.forEach(genre => {
     const opt = document.createElement('option');

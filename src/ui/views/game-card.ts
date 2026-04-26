@@ -1,7 +1,7 @@
 import type { GameEntry } from '../../api/types';
 import { t } from '../i18n';
 import { formatDate, formatHours, formatCurrency } from '../format';
-import { html } from '../template';
+import { html, ICON_HIDE, ICON_SHOW } from '../template';
 
 // ── Templates ────────────────────────────────────────────────
 
@@ -205,7 +205,10 @@ function renderLinks(
     hideLnk.className = 'game-link hide-link';
     hideLnk.style.background = 'transparent';
     hideLnk.style.marginLeft = 'auto';
-    hideLnk.textContent = isHidden ? t('game_link_unhide') : t('game_link_hide');
+    hideLnk.innerHTML = isHidden ? ICON_SHOW : ICON_HIDE;
+    const label = isHidden ? t('game_link_unhide') : t('game_link_hide');
+    hideLnk.title = label;
+    hideLnk.setAttribute('aria-label', label);
     hideLnk.addEventListener('click', () => onToggleHide(game.appId, !!isHidden));
     linksEl.appendChild(hideLnk);
   }
