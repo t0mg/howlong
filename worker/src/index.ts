@@ -433,7 +433,7 @@ export default {
         if (!Array.isArray(names)) return jsonResponse({ error: 'Missing names array' }, 400);
 
         const results = await Promise.all(names.map(async (query) => {
-          const gogUrl = `https://catalog.gog.com/v2/catalog?query=${encodeURIComponent(query)}&limit=5&countryCode=${cc.toUpperCase()}&currencyCode=${currency.toUpperCase()}&locale=en-US&productType=in,game,pack`;
+          const gogUrl = `https://catalog.gog.com/v1/catalog?query=${encodeURIComponent(query)}&limit=5&countryCode=${cc.toUpperCase()}&currencyCode=${currency.toUpperCase()}&locale=en-US&productType=in,game,pack`;
 
           try {
             const res = await fetch(gogUrl, {
