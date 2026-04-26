@@ -1,7 +1,20 @@
 import type { GameEntry } from '../../api/types';
+import { fetchSteamReviews } from '../../api/steam';
 import { t } from '../i18n';
-import { formatDate, formatHours, formatCurrency } from '../format';
-import { html, ICON_HIDE, ICON_SHOW } from '../template';
+import { formatDate, formatHours, formatCurrency, formatCompactNumber } from '../format';
+import { html, ICON_THUMB_UP, ICON_THUMB_DOWN, ICON_HIDE, ICON_SHOW } from '../template';
+import { getCurrentLocale } from '../i18n';
+import type { Locale } from '../i18n';
+import { getCachedSteam, setCachedSteam } from '../../cache';
+
+const STEAM_LANG_MAP: Record<Locale, string> = {
+  en: 'english',
+  fr: 'french',
+  es: 'spanish',
+  de: 'german',
+  ja: 'japanese',
+  zh: 'schinese'
+};
 
 // ── Templates ────────────────────────────────────────────────
 
@@ -13,7 +26,10 @@ const TPL_GAME_CARD = `
     </div>
     <div class="game-card-info">
       <h3 class="game-name" data-ref="name"></h3>
-      <span class="game-date" data-ref="date"></span>
+      <div>
+        <span class="game-date" data-ref="date"></span>
+        <span class="review-score" data-ref="review"></span>
+      </div>
       <div class="genre-chips" data-ref="genres"></div>
       <div class="price-row" data-ref="priceRow"></div>
       <div class="hltb-section" data-ref="hltb"></div>
@@ -43,6 +59,7 @@ export function createGameCard(
     badges: HTMLElement;
     name: HTMLElement;
     date: HTMLElement;
+    review: HTMLElement;
     genres: HTMLElement;
     priceRow: HTMLElement;
     hltb: HTMLElement;
@@ -53,6 +70,50 @@ export function createGameCard(
   refs.img.alt = game.name;
   refs.name.textContent = game.name;
   refs.date.textContent = t('game_added', { date: formatDate(game.dateAdded) });
+
+  const updateReviewDOM = () => {
+    if (game.reviewDesc && game.reviewCount > 0) {
+      const icon = game.reviewPercent >= 40 ? ICON_THUMB_UP : ICON_THUMB_DOWN;
+      refs.review.innerHTML = `${icon} ${game.reviewPercent}%`;
+      refs.review.title = `${game.reviewDesc} (${formatCompactNumber(game.reviewCount)})`;
+      refs.review.classList.add(getReviewClass(game.reviewPercent));
+    }
+  };
+
+  const isReviewStale = !game.reviewTimestamp || (Date.now() - game.reviewTimestamp > 24 * 60 * 60 * 1000);
+
+  if (game.reviewDesc) {
+    updateReviewDOM();
+  }
+
+  if ((!game.reviewDesc || isReviewStale) && game.reviewStatus !== 'pending') {
+    game.reviewStatus = 'pending';
+    const steamLang = STEAM_LANG_MAP[getCurrentLocale()] || 'english';
+    fetchSteamReviews(game.appId, steamLang).then(async reviews => {
+      if (reviews && reviews.success && reviews.desc) {
+        game.reviewDesc = reviews.desc;
+        game.reviewPercent = reviews.percent;
+        game.reviewCount = reviews.total;
+        game.reviewTimestamp = Date.now();
+        game.reviewStatus = 'loaded';
+        updateReviewDOM();
+
+        // Persist to cache
+        const cached = await getCachedSteam(game.appId);
+        if (cached) {
+          await setCachedSteam(game.appId, {
+            ...cached,
+            reviewDesc: game.reviewDesc,
+            reviewPercent: game.reviewPercent,
+            reviewCount: game.reviewCount,
+            reviewTimestamp: game.reviewTimestamp,
+          });
+        }
+      } else {
+        game.reviewStatus = 'error';
+      }
+    });
+  }
 
   // Badges
   if (game.isComingSoon) {
@@ -230,4 +291,10 @@ function createDurationRow(label: string, hours: number, type: string): HTMLElem
   refs.bar.className = `duration-bar duration-bar-${type}`;
   refs.bar.style.width = `${Math.min((hours / 200) * 100, 100)}%`;
   return element;
+}
+
+function getReviewClass(percent: number): string {
+  if (percent >= 80) return 'review-positive';
+  if (percent >= 40) return 'review-mixed';
+  return 'review-negative';
 }

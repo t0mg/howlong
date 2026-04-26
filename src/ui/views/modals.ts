@@ -32,6 +32,13 @@ const TPL_SETTINGS_MODAL = `
         </div>
         <div class="settings-item">
           <div class="settings-item-info">
+            <span class="settings-item-label" data-t="settings_clear_hidden_label"></span>
+            <p class="settings-item-desc" data-t="settings_clear_hidden_desc"></p>
+          </div>
+          <div class="settings-item-action" data-ref="hiddenContainer"></div>
+        </div>
+        <div class="settings-item">
+          <div class="settings-item-info">
             <span class="settings-item-label" data-t="settings_clear_hltb_label"></span>
             <p class="settings-item-desc" data-t="settings_clear_hltb_desc"></p>
           </div>
@@ -46,10 +53,10 @@ const TPL_SETTINGS_MODAL = `
         </div>
         <div class="settings-item">
           <div class="settings-item-info">
-            <span class="settings-item-label" data-t="settings_clear_hidden_label"></span>
-            <p class="settings-item-desc" data-t="settings_clear_hidden_desc"></p>
+            <span class="settings-item-label" data-t="settings_clear_gog_label"></span>
+            <p class="settings-item-desc" data-t="settings_clear_gog_desc"></p>
           </div>
-          <div class="settings-item-action" data-ref="hiddenContainer"></div>
+          <div class="settings-item-action" data-ref="gogContainer"></div>
         </div>
         <div class="settings-item">
           <div class="settings-item-info">
@@ -164,6 +171,7 @@ export function renderConfirmModal(
 export function renderSettingsModal(
   onClearHLTB: () => void,
   onClearSteam: () => void,
+  onClearGOG: () => void,
   onClearHidden: () => void,
   onHardReset: () => void,
   onRegionChange: (regionId: string) => void,
@@ -179,6 +187,7 @@ export function renderSettingsModal(
     langContainer: HTMLElement;
     hltbContainer: HTMLElement;
     steamContainer: HTMLElement;
+    gogContainer: HTMLElement;
     hiddenContainer: HTMLElement;
     resetContainer: HTMLElement;
   }>(TPL_SETTINGS_MODAL);
@@ -235,6 +244,14 @@ export function renderSettingsModal(
     steamBtn.classList.add('btn-action-disabled');
   });
   refs.steamContainer.appendChild(steamBtn);
+
+  const gogBtn = createActionBtn(t('settings_clear_gog_btn'), 'btn-action-secondary', () => {
+    onClearGOG();
+    gogBtn.textContent = t('settings_cleared');
+    gogBtn.disabled = true;
+    gogBtn.classList.add('btn-action-disabled');
+  });
+  refs.gogContainer.appendChild(gogBtn);
 
   const hiddenBtn = createActionBtn(t('settings_clear_hidden_btn'), 'btn-action-secondary', () => {
     onClearHidden();
@@ -345,7 +362,7 @@ export function renderLuckyModal(
   refs.overlay.addEventListener('click', (e) => { if (e.target === refs.overlay) close(); });
 
   const getDuration = (game: GameEntry) => game.hltbMain ?? game.hltbMainExtra ?? game.hltbCompletionist;
-  
+
   const getPrice = (game: GameEntry) => {
     const steamPrice = game.isFree ? 0 : game.priceFinal;
     const gogPrice = game.gogPriceFinal;
@@ -357,7 +374,7 @@ export function renderLuckyModal(
 
   const draw = () => {
     refs.contentContainer.innerHTML = '';
-    
+
     if (pool.length === 0) {
       refs.contentContainer.innerHTML = `<div class="lucky-empty-state">${t('lucky_empty')}</div>`;
       refs.refineActions.style.display = 'none';
@@ -369,7 +386,7 @@ export function renderLuckyModal(
 
     const card = createGameCard(currentGame, currency);
     card.classList.add('lucky-card');
-    
+
     refs.contentContainer.appendChild(card);
 
     if (card.animate) {

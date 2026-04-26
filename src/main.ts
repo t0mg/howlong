@@ -1,7 +1,7 @@
 import './style.css';
 import type { AppState, SortField, SortState } from './api/types';
 import { REGION_MAP } from './api/types';
-import { getSetting, setSetting, clearHLTBCache, clearSteamCache } from './cache';
+import { getSetting, setSetting, clearHLTBCache, clearSteamCache, clearGOGCache } from './cache';
 import { renderLanding, renderLoading, renderError, renderDashboard, renderStatsModal } from './ui/render';
 import { t, getBrowserLocale, setLocale } from './ui/i18n';
 import type { Locale } from './ui/i18n';
@@ -105,6 +105,10 @@ async function handleSettings() {
     },
     async () => {
       await clearSteamCache();
+      isDirty = true;
+    },
+    async () => {
+      await clearGOGCache();
       isDirty = true;
     },
     async () => {

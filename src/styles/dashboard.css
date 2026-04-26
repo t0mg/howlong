@@ -352,6 +352,34 @@
   margin-top: -0.2rem;
 }
 
+.review-score {
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.review-positive::before,
+.review-mixed::before,
+.review-negative::before {
+  content: "•";
+  margin: 0 2px;
+  color: var(--text-muted);
+}
+
+.review-positive {
+  color: #1b9fff;
+}
+
+.review-mixed {
+  color: #b9a074;
+}
+
+.review-negative {
+  color: #a34c25;
+}
+
 .genre-chips {
   display: flex;
   flex-wrap: wrap;
@@ -437,7 +465,7 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: var(--accent);
+  color: var(--accent-secondary);
   margin-right: 0.25rem;
 }
 

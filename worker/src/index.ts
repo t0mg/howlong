@@ -88,6 +88,77 @@ async function handlePricesBatch(url: URL): Promise<Response> {
   });
 }
 
+async function handleReviews(appId: string, lang: string, ctx: ExecutionContext): Promise<Response> {
+  const cacheKey = new Request(`https://steam-reviews-cache.internal/v1/${appId}/${lang}`);
+  const cache = caches.default;
+
+  const cached = await cache.match(cacheKey);
+  if (cached) {
+    console.log(`[Worker] Reviews cache HIT for ${appId}`);
+    const response = new Response(cached.body, cached);
+    for (const [key, value] of Object.entries(CORS_HEADERS)) {
+      response.headers.set(key, value);
+    }
+    response.headers.set("X-Cache-Status", "HIT");
+    return response;
+  }
+
+  console.log(`[Worker] Fetching Reviews: ${appId} (lang: ${lang})`);
+  const steamUrl = `https://store.steampowered.com/appreviews/${appId}?json=1&language=${lang}`;
+
+  try {
+    const res = await fetch(steamUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+    });
+
+    if (!res.ok) {
+      return jsonResponse({ error: `Steam API error: ${res.status}` }, res.status);
+    }
+
+    const data: any = await res.json();
+    if (data && data.query_summary) {
+      const summary = data.query_summary;
+      const totalReviews = summary.total_reviews >= 10 ? summary.total_reviews : 0;
+      const totalPositive = summary.total_positive || 0;
+      const percent = totalReviews > 0 ? Math.round((totalPositive / totalReviews) * 100) : 0;
+
+      const payload = {
+        success: true,
+        desc: summary.review_score_desc || '',
+        percent,
+        total: totalReviews
+      };
+
+      const response = new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, max-age=86400', // 24 hours browser cache
+          "X-Cache-Status": "MISS",
+          ...CORS_HEADERS,
+        },
+      });
+
+      // Cache on edge for 24h
+      const toCache = new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 's-maxage=86400',
+        },
+      });
+      ctx.waitUntil(cache.put(cacheKey, toCache));
+
+      return response;
+    }
+
+    return jsonResponse({ success: false, desc: '', percent: 0, total: 0 });
+  } catch (err: unknown) {
+    console.error(`[Worker] Reviews error for ${appId}:`, err);
+    return jsonResponse({ error: 'Failed to fetch reviews' }, 500);
+  }
+}
+
 async function handleMetadata(appId: string, ctx: ExecutionContext): Promise<Response> {
   const steamUrl = `https://store.steampowered.com/api/appdetails?appids=${appId}&filters=basic,genres,demos,release_date`;
   const cacheKey = new Request(`https://steam-meta-cache.internal/v3/${appId}`);
@@ -340,6 +411,13 @@ export default {
         return await handleMetadata(metaMatch[1], ctx);
       }
 
+      // GET /steam/reviews/:appId
+      const reviewsMatch = path.match(/^\/steam\/reviews\/(\d+)$/);
+      if (reviewsMatch) {
+        const lang = url.searchParams.get('lang') || 'english';
+        return await handleReviews(reviewsMatch[1], lang, ctx);
+      }
+
       // ── HLTB Search ───────────────────────────────────────
       // GET /hltb/search?q=Game+Name
       if (path === '/hltb/search') {
@@ -347,61 +425,6 @@ export default {
       }
 
       // ── GOG Search ────────────────────────────────────────
-      // GET /gog/search?q=Game+Name&cc=FR&currency=EUR
-      if (path === '/gog/search') {
-        const query = url.searchParams.get('q');
-        const cc = url.searchParams.get('cc') || 'us';
-        const currency = url.searchParams.get('currency') || 'USD';
-
-        if (!query) return jsonResponse({ error: 'Missing ?q=' }, 400);
-
-        const gogUrl = `https://catalog.gog.com/v1/catalog?query=${encodeURIComponent(query)}&limit=5&countryCode=${cc.toUpperCase()}&currencyCode=${currency.toUpperCase()}&locale=en-US&productType=in,game,pack`;
-        const res = await fetch(gogUrl, {
-          cf: { cacheEverything: true, cacheTtl: 86400 },
-        } as RequestInit);
-
-        if (!res.ok) {
-          return jsonResponse({ error: 'GOG API error', status: res.status }, res.status);
-        }
-
-        const data = await res.json() as any;
-        if (data.products && data.products.length > 0) {
-          const bestMatch = findBestGOGMatch(data.products, query);
-
-          if (bestMatch) {
-            const product = bestMatch;
-            const priceInfo = product.price ? {
-              amount: parseFloat(product.price.finalMoney.amount),
-              baseAmount: parseFloat(product.price.baseMoney.amount),
-              currency: product.price.finalMoney.currency,
-              discount: parseFloat(product.price.finalMoney.discount || '0')
-            } : undefined;
-
-            return new Response(JSON.stringify({ 
-              found: true, 
-              storeLink: product.storeLink,
-              price: priceInfo
-            }), {
-              status: 200,
-              headers: {
-                'Content-Type': 'application/json',
-                'Cache-Control': 'public, max-age=86400',
-                ...CORS_HEADERS,
-              },
-            });
-          }
-        }
-
-        return new Response(JSON.stringify({ found: false }), {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'public, max-age=86400',
-            ...CORS_HEADERS,
-          },
-        });
-      }
-
       // POST /gog/search-batch
       if (path === '/gog/search-batch' && request.method === 'POST') {
         const body = await request.json() as { names: string[], cc: string, currency: string };
@@ -410,8 +433,8 @@ export default {
         if (!Array.isArray(names)) return jsonResponse({ error: 'Missing names array' }, 400);
 
         const results = await Promise.all(names.map(async (query) => {
-          const gogUrl = `https://catalog.gog.com/v1/catalog?query=${encodeURIComponent(query)}&limit=5&countryCode=${cc.toUpperCase()}&currencyCode=${currency.toUpperCase()}&locale=en-US&productType=in,game,pack`;
-          
+          const gogUrl = `https://catalog.gog.com/v2/catalog?query=${encodeURIComponent(query)}&limit=5&countryCode=${cc.toUpperCase()}&currencyCode=${currency.toUpperCase()}&locale=en-US&productType=in,game,pack`;
+
           try {
             const res = await fetch(gogUrl, {
               cf: { cacheEverything: true, cacheTtl: 86400 },
@@ -425,16 +448,18 @@ export default {
 
               if (bestMatch) {
                 const product = bestMatch;
+                const amount = parseFloat(product.price.finalMoney.amount);
+                const baseAmount = parseFloat(product.price.baseMoney.amount);
                 const priceInfo = product.price ? {
-                  amount: parseFloat(product.price.finalMoney.amount),
-                  baseAmount: parseFloat(product.price.baseMoney.amount),
+                  amount,
+                  baseAmount,
                   currency: product.price.finalMoney.currency,
-                  discount: parseFloat(product.price.finalMoney.discount || '0')
+                  discount: baseAmount > 0 ? Math.round((1 - amount / baseAmount) * 100) : 0
                 } : undefined;
 
-                return { 
+                return {
                   name: query,
-                  found: true, 
+                  found: true,
                   storeLink: product.storeLink,
                   price: priceInfo
                 };

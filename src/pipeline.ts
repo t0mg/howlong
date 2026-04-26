@@ -92,8 +92,11 @@ export async function fetchWishlistPipeline(state: AppState): Promise<GameEntry[
             name: cached.name,
             capsuleUrl: cached.capsuleUrl,
             releaseDate: '',
-            reviewDesc: '',
-            reviewPercent: 0,
+            reviewDesc: cached.reviewDesc || '',
+            reviewPercent: cached.reviewPercent || 0,
+            reviewCount: cached.reviewCount || 0,
+            reviewTimestamp: cached.reviewTimestamp,
+            reviewStatus: cached.reviewDesc ? 'loaded' : undefined,
             genres: cached.genres || [],
             isComingSoon: !!cached.isComingSoon,
             isDemo: !!cached.isDemo,
@@ -136,6 +139,10 @@ export async function fetchWishlistPipeline(state: AppState): Promise<GameEntry[
               isUnavailable: game.isUnavailable,
               isDemo: game.isDemo,
               hasDemo: game.hasDemo,
+              reviewDesc: cached.reviewDesc,
+              reviewPercent: cached.reviewPercent,
+              reviewCount: cached.reviewCount,
+              reviewTimestamp: cached.reviewTimestamp,
             });
           }
         } else {
@@ -153,6 +160,7 @@ export async function fetchWishlistPipeline(state: AppState): Promise<GameEntry[
               releaseDate: '',
               reviewDesc: '',
               reviewPercent: 0,
+              reviewCount: 0,
               genres: data.genres?.map(g => g.description) || [],
               isComingSoon: !!data.release_date?.coming_soon,
               isDemo: data.type === 'demo',
