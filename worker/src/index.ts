@@ -89,7 +89,7 @@ async function handlePricesBatch(url: URL): Promise<Response> {
 }
 
 async function handleReviews(appId: string, lang: string, ctx: ExecutionContext): Promise<Response> {
-  const cacheKey = new Request(`https://steam-reviews-cache.internal/v1/${appId}/${lang}`);
+  const cacheKey = new Request(`https://steam-reviews-cache.internal/v10/${appId}/${lang}`);
   const cache = caches.default;
 
   const cached = await cache.match(cacheKey);
@@ -99,12 +99,13 @@ async function handleReviews(appId: string, lang: string, ctx: ExecutionContext)
     for (const [key, value] of Object.entries(CORS_HEADERS)) {
       response.headers.set(key, value);
     }
+    response.headers.set("X-Cache-Status", "HIT");
     return response;
   }
 
   console.log(`[Worker] Fetching Reviews: ${appId} (lang: ${lang})`);
   const steamUrl = `https://store.steampowered.com/appreviews/${appId}?json=1&language=${lang}`;
-  
+
   try {
     const res = await fetch(steamUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0' },
@@ -117,10 +118,10 @@ async function handleReviews(appId: string, lang: string, ctx: ExecutionContext)
     const data: any = await res.json();
     if (data && data.query_summary) {
       const summary = data.query_summary;
-      const totalReviews = summary.total_reviews || 0;
+      const totalReviews = summary.total_reviews >= 10 ? summary.total_reviews : 0;
       const totalPositive = summary.total_positive || 0;
       const percent = totalReviews > 0 ? Math.round((totalPositive / totalReviews) * 100) : 0;
-      
+
       const payload = {
         success: true,
         desc: summary.review_score_desc || '',
@@ -133,6 +134,7 @@ async function handleReviews(appId: string, lang: string, ctx: ExecutionContext)
         headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'public, max-age=86400', // 24 hours browser cache
+          "X-Cache-Status": "MISS",
           ...CORS_HEADERS,
         },
       });
@@ -453,8 +455,8 @@ export default {
               discount: parseFloat(product.price.finalMoney.discount || '0')
             } : undefined;
 
-            return new Response(JSON.stringify({ 
-              found: true, 
+            return new Response(JSON.stringify({
+              found: true,
               storeLink: product.storeLink,
               price: priceInfo
             }), {
@@ -487,7 +489,7 @@ export default {
 
         const results = await Promise.all(names.map(async (query) => {
           const gogUrl = `https://catalog.gog.com/v1/catalog?query=${encodeURIComponent(query)}&limit=5&countryCode=${cc.toUpperCase()}&currencyCode=${currency.toUpperCase()}&locale=en-US&productType=in,game,pack`;
-          
+
           try {
             const res = await fetch(gogUrl, {
               cf: { cacheEverything: true, cacheTtl: 86400 },
@@ -508,9 +510,9 @@ export default {
                   discount: parseFloat(product.price.finalMoney.discount || '0')
                 } : undefined;
 
-                return { 
+                return {
                   name: query,
-                  found: true, 
+                  found: true,
                   storeLink: product.storeLink,
                   price: priceInfo
                 };

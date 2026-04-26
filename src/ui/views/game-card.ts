@@ -1,7 +1,7 @@
 import type { GameEntry } from '../../api/types';
 import { fetchSteamReviews } from '../../api/steam';
 import { t } from '../i18n';
-import { formatDate, formatHours, formatCurrency } from '../format';
+import { formatDate, formatHours, formatCurrency, formatCompactNumber } from '../format';
 import { html, ICON_THUMB_UP, ICON_THUMB_DOWN, ICON_HIDE, ICON_SHOW } from '../template';
 import { getCurrentLocale } from '../i18n';
 import type { Locale } from '../i18n';
@@ -74,7 +74,7 @@ export function createGameCard(
     if (game.reviewDesc && game.reviewCount > 0) {
       const icon = game.reviewPercent >= 40 ? ICON_THUMB_UP : ICON_THUMB_DOWN;
       refs.review.innerHTML = `${icon} ${game.reviewPercent}%`;
-      refs.review.title = game.reviewDesc;
+      refs.review.title = `${game.reviewDesc} (${formatCompactNumber(game.reviewCount)})`;
       refs.review.classList.add(getReviewClass(game.reviewPercent));
     }
   };
