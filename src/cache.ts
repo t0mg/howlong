@@ -67,6 +67,13 @@ export async function clearSteamCache(): Promise<void> {
 }
 
 /**
+ * Clears only the GOG metadata cache
+ */
+export async function clearGOGCache(): Promise<void> {
+  await idbClear(gogStore);
+}
+
+/**
  * Wipes all caches and settings
  */
 export async function clearCache(): Promise<void> {
