@@ -94,7 +94,7 @@ export async function fetchSteamReviews(appId: string, lang = 'all') {
   const url = `${PROXY_BASE}/steam/reviews/${appId}?lang=${lang}`;
 
   try {
-    const res = await fetch(url, { cache: 'no-cache' });
+    const res = await fetch(url);
     if (res.status === 200) return await res.json();
     return null;
   } catch (err) {

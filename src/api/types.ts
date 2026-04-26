@@ -106,6 +106,7 @@ export interface GameEntry {
   gogStatus: 'pending' | 'found' | 'not_found';
   priceStatus: 'pending' | 'found' | 'not_found' | 'free' | 'stale' | 'unavailable';
   reviewStatus?: 'pending' | 'loaded' | 'error';
+  reviewTimestamp?: number;
   isStale?: boolean;
   dateAdded: number;
 }
@@ -129,6 +130,10 @@ export interface CachedSteamData {
   isUnavailable?: boolean;
   isDemo?: boolean;
   hasDemo?: boolean;
+  reviewDesc?: string;
+  reviewPercent?: number;
+  reviewCount?: number;
+  reviewTimestamp?: number;
 }
 
 export interface SteamCacheEntry {

@@ -5,6 +5,7 @@ import { formatDate, formatHours, formatCurrency, formatCompactNumber } from '..
 import { html, ICON_THUMB_UP, ICON_THUMB_DOWN, ICON_HIDE, ICON_SHOW } from '../template';
 import { getCurrentLocale } from '../i18n';
 import type { Locale } from '../i18n';
+import { getCachedSteam, setCachedSteam } from '../../cache';
 
 const STEAM_LANG_MAP: Record<Locale, string> = {
   en: 'english',
@@ -79,18 +80,35 @@ export function createGameCard(
     }
   };
 
+  const isReviewStale = !game.reviewTimestamp || (Date.now() - game.reviewTimestamp > 24 * 60 * 60 * 1000);
+
   if (game.reviewDesc) {
     updateReviewDOM();
-  } else if (game.reviewStatus !== 'loaded' && game.reviewStatus !== 'error') {
+  }
+
+  if ((!game.reviewDesc || isReviewStale) && game.reviewStatus !== 'pending') {
     game.reviewStatus = 'pending';
     const steamLang = STEAM_LANG_MAP[getCurrentLocale()] || 'english';
-    fetchSteamReviews(game.appId, steamLang).then(reviews => {
+    fetchSteamReviews(game.appId, steamLang).then(async reviews => {
       if (reviews && reviews.success && reviews.desc) {
         game.reviewDesc = reviews.desc;
         game.reviewPercent = reviews.percent;
         game.reviewCount = reviews.total;
+        game.reviewTimestamp = Date.now();
         game.reviewStatus = 'loaded';
         updateReviewDOM();
+
+        // Persist to cache
+        const cached = await getCachedSteam(game.appId);
+        if (cached) {
+          await setCachedSteam(game.appId, {
+            ...cached,
+            reviewDesc: game.reviewDesc,
+            reviewPercent: game.reviewPercent,
+            reviewCount: game.reviewCount,
+            reviewTimestamp: game.reviewTimestamp,
+          });
+        }
       } else {
         game.reviewStatus = 'error';
       }
