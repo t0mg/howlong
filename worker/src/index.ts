@@ -425,61 +425,6 @@ export default {
       }
 
       // ── GOG Search ────────────────────────────────────────
-      // GET /gog/search?q=Game+Name&cc=FR&currency=EUR
-      if (path === '/gog/search') {
-        const query = url.searchParams.get('q');
-        const cc = url.searchParams.get('cc') || 'us';
-        const currency = url.searchParams.get('currency') || 'USD';
-
-        if (!query) return jsonResponse({ error: 'Missing ?q=' }, 400);
-
-        const gogUrl = `https://catalog.gog.com/v1/catalog?query=${encodeURIComponent(query)}&limit=5&countryCode=${cc.toUpperCase()}&currencyCode=${currency.toUpperCase()}&locale=en-US&productType=in,game,pack`;
-        const res = await fetch(gogUrl, {
-          cf: { cacheEverything: true, cacheTtl: 86400 },
-        } as RequestInit);
-
-        if (!res.ok) {
-          return jsonResponse({ error: 'GOG API error', status: res.status }, res.status);
-        }
-
-        const data = await res.json() as any;
-        if (data.products && data.products.length > 0) {
-          const bestMatch = findBestGOGMatch(data.products, query);
-
-          if (bestMatch) {
-            const product = bestMatch;
-            const priceInfo = product.price ? {
-              amount: parseFloat(product.price.finalMoney.amount),
-              baseAmount: parseFloat(product.price.baseMoney.amount),
-              currency: product.price.finalMoney.currency,
-              discount: parseFloat(product.price.finalMoney.discount || '0')
-            } : undefined;
-
-            return new Response(JSON.stringify({
-              found: true,
-              storeLink: product.storeLink,
-              price: priceInfo
-            }), {
-              status: 200,
-              headers: {
-                'Content-Type': 'application/json',
-                'Cache-Control': 'public, max-age=86400',
-                ...CORS_HEADERS,
-              },
-            });
-          }
-        }
-
-        return new Response(JSON.stringify({ found: false }), {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'public, max-age=86400',
-            ...CORS_HEADERS,
-          },
-        });
-      }
-
       // POST /gog/search-batch
       if (path === '/gog/search-batch' && request.method === 'POST') {
         const body = await request.json() as { names: string[], cc: string, currency: string };
@@ -488,7 +433,7 @@ export default {
         if (!Array.isArray(names)) return jsonResponse({ error: 'Missing names array' }, 400);
 
         const results = await Promise.all(names.map(async (query) => {
-          const gogUrl = `https://catalog.gog.com/v1/catalog?query=${encodeURIComponent(query)}&limit=5&countryCode=${cc.toUpperCase()}&currencyCode=${currency.toUpperCase()}&locale=en-US&productType=in,game,pack`;
+          const gogUrl = `https://catalog.gog.com/v2/catalog?query=${encodeURIComponent(query)}&limit=5&countryCode=${cc.toUpperCase()}&currencyCode=${currency.toUpperCase()}&locale=en-US&productType=in,game,pack`;
 
           try {
             const res = await fetch(gogUrl, {
@@ -503,11 +448,13 @@ export default {
 
               if (bestMatch) {
                 const product = bestMatch;
+                const amount = parseFloat(product.price.finalMoney.amount);
+                const baseAmount = parseFloat(product.price.baseMoney.amount);
                 const priceInfo = product.price ? {
-                  amount: parseFloat(product.price.finalMoney.amount),
-                  baseAmount: parseFloat(product.price.baseMoney.amount),
+                  amount,
+                  baseAmount,
                   currency: product.price.finalMoney.currency,
-                  discount: parseFloat(product.price.finalMoney.discount || '0')
+                  discount: baseAmount > 0 ? Math.round((1 - amount / baseAmount) * 100) : 0
                 } : undefined;
 
                 return {
