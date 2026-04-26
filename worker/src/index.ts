@@ -88,6 +88,75 @@ async function handlePricesBatch(url: URL): Promise<Response> {
   });
 }
 
+async function handleReviews(appId: string, lang: string, ctx: ExecutionContext): Promise<Response> {
+  const cacheKey = new Request(`https://steam-reviews-cache.internal/v1/${appId}/${lang}`);
+  const cache = caches.default;
+
+  const cached = await cache.match(cacheKey);
+  if (cached) {
+    console.log(`[Worker] Reviews cache HIT for ${appId}`);
+    const response = new Response(cached.body, cached);
+    for (const [key, value] of Object.entries(CORS_HEADERS)) {
+      response.headers.set(key, value);
+    }
+    return response;
+  }
+
+  console.log(`[Worker] Fetching Reviews: ${appId} (lang: ${lang})`);
+  const steamUrl = `https://store.steampowered.com/appreviews/${appId}?json=1&language=${lang}`;
+  
+  try {
+    const res = await fetch(steamUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+    });
+
+    if (!res.ok) {
+      return jsonResponse({ error: `Steam API error: ${res.status}` }, res.status);
+    }
+
+    const data: any = await res.json();
+    if (data && data.query_summary) {
+      const summary = data.query_summary;
+      const totalReviews = summary.total_reviews || 0;
+      const totalPositive = summary.total_positive || 0;
+      const percent = totalReviews > 0 ? Math.round((totalPositive / totalReviews) * 100) : 0;
+      
+      const payload = {
+        success: true,
+        desc: summary.review_score_desc || '',
+        percent,
+        total: totalReviews
+      };
+
+      const response = new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, max-age=86400', // 24 hours browser cache
+          ...CORS_HEADERS,
+        },
+      });
+
+      // Cache on edge for 24h
+      const toCache = new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 's-maxage=86400',
+        },
+      });
+      ctx.waitUntil(cache.put(cacheKey, toCache));
+
+      return response;
+    }
+
+    return jsonResponse({ success: false, desc: '', percent: 0, total: 0 });
+  } catch (err: unknown) {
+    console.error(`[Worker] Reviews error for ${appId}:`, err);
+    return jsonResponse({ error: 'Failed to fetch reviews' }, 500);
+  }
+}
+
 async function handleMetadata(appId: string, ctx: ExecutionContext): Promise<Response> {
   const steamUrl = `https://store.steampowered.com/api/appdetails?appids=${appId}&filters=basic,genres,demos,release_date`;
   const cacheKey = new Request(`https://steam-meta-cache.internal/v3/${appId}`);
@@ -338,6 +407,13 @@ export default {
       const metaMatch = path.match(/^\/steam\/metadata\/(\d+)$/);
       if (metaMatch) {
         return await handleMetadata(metaMatch[1], ctx);
+      }
+
+      // GET /steam/reviews/:appId
+      const reviewsMatch = path.match(/^\/steam\/reviews\/(\d+)$/);
+      if (reviewsMatch) {
+        const lang = url.searchParams.get('lang') || 'english';
+        return await handleReviews(reviewsMatch[1], lang, ctx);
       }
 
       // ── HLTB Search ───────────────────────────────────────

@@ -86,3 +86,20 @@ export async function fetchSteamMetadata(
   }
 }
 
+/**
+ * Fetches review summary for a single app.
+ */
+export async function fetchSteamReviews(appId: string, lang = 'all') {
+  lang = "all"; // For score consistency it's actually better to get all languages
+  const url = `${PROXY_BASE}/steam/reviews/${appId}?lang=${lang}`;
+
+  try {
+    const res = await fetch(url, { cache: 'no-cache' });
+    if (res.status === 200) return await res.json();
+    return null;
+  } catch (err) {
+    console.error(`[Steam] Reviews fetch failed for ${appId}:`, err);
+    return null;
+  }
+}
+

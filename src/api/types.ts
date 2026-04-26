@@ -76,6 +76,7 @@ export interface GameEntry {
   hasDemo: boolean;
   reviewDesc: string;
   reviewPercent: number;
+  reviewCount: number;
   genres: string[];
   isFree: boolean;
   isUnavailable?: boolean;
@@ -104,8 +105,16 @@ export interface GameEntry {
   hltbStatus: 'pending' | 'found' | 'not_found';
   gogStatus: 'pending' | 'found' | 'not_found';
   priceStatus: 'pending' | 'found' | 'not_found' | 'free' | 'stale' | 'unavailable';
+  reviewStatus?: 'pending' | 'loaded' | 'error';
   isStale?: boolean;
   dateAdded: number;
+}
+
+export interface SteamReviewsResponse {
+  success: boolean;
+  desc: string;
+  percent: number;
+  total: number;
 }
 
 export interface CachedSteamData {

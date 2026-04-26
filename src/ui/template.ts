@@ -17,6 +17,10 @@ export const ICON_HIDE = `<svg viewBox="0 0 24 24" width="16" height="16" fill="
 
 export const ICON_SHOW = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
 
+export const ICON_THUMB_UP = `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M2 20h2c.55 0 1-.45 1-1v-9c0-.55-.45-1-1-1H2v11zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.98l1.09-5.09.03-.32c0-.41-.17-.79-.44-1.06L14.28 2l-6.64 6.64c-.4.4-.64.95-.64 1.52V19c0 1.1.9 2 2 2h7.3c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>`;
+
+export const ICON_THUMB_DOWN = `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M22 4h-2c-.55 0-1 .45-1 1v9c0 .55.45 1 1 1h2V4zM2.17 11.12c-.11.25-.17.52-.17.8V13c0 1.1.9 2 2 2h5.98l-1.09 5.09-.03.32c0 .41.17.79.44 1.06L9.72 22l6.64-6.64c.4-.4.64-.95.64-1.52V5c0-1.1-.9-2-2-2H7.7c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2z"/></svg>`;
+
 // ── Shared Template Fragments ────────────────────────────────
 
 export const TPL_STAT_CARD = `
