@@ -172,13 +172,15 @@ function renderStatsBar(
     { icon: '🏷️', labelKey: 'stats_savings', value: formatCurrency(stats.totalSavings, currency) },
   ];
 
+  const fragment = document.createDocumentFragment();
   data.forEach(item => {
     const { element: card, refs: cRefs } = html<{ icon: HTMLElement; value: HTMLElement; label: HTMLElement }>(TPL_STAT_CARD);
     cRefs.icon.textContent = item.icon;
     cRefs.value.textContent = item.value;
     cRefs.label.textContent = t(item.labelKey);
-    refs.container.appendChild(card);
+    fragment.appendChild(card);
   });
+  refs.container.appendChild(fragment);
 
   return element;
 }
@@ -197,17 +199,18 @@ function renderFilterAndSort(
   state.games.forEach(g => g.genres?.forEach(genre => genres.add(genre)));
   const sortedGenres = Array.from(genres).sort();
 
+  const filterFragment = document.createDocumentFragment();
   const allOpt = document.createElement('option');
   allOpt.value = '';
   allOpt.textContent = t('dashboard_filter_all');
-  refs.filterSelect.appendChild(allOpt);
+  filterFragment.appendChild(allOpt);
 
   if (state.hiddenGames.size > 0 || state.filterCategory === 'hidden') {
     const hiddenOpt = document.createElement('option');
     hiddenOpt.value = 'hidden';
     hiddenOpt.textContent = t('dashboard_filter_hidden');
     if (state.filterCategory === 'hidden') hiddenOpt.selected = true;
-    refs.filterSelect.appendChild(hiddenOpt);
+    filterFragment.appendChild(hiddenOpt);
   }
 
   sortedGenres.forEach(genre => {
@@ -215,8 +218,9 @@ function renderFilterAndSort(
     opt.value = genre;
     opt.textContent = genre;
     if (state.filterCategory === genre) opt.selected = true;
-    refs.filterSelect.appendChild(opt);
+    filterFragment.appendChild(opt);
   });
+  refs.filterSelect.appendChild(filterFragment);
 
   if (state.filterCategory) refs.filterSelect.classList.add('active');
   refs.filterSelect.addEventListener('change', () => onFilter(refs.filterSelect.value || null));
@@ -233,6 +237,7 @@ function renderFilterAndSort(
     { value: 'discountPercent', labelKey: 'sort_discountPercent' },
   ];
 
+  const sortFragment = document.createDocumentFragment();
   sortDefs.forEach(opt => {
     const isActive = state.sort.field === opt.value;
     const btn = document.createElement('button');
@@ -247,8 +252,9 @@ function renderFilterAndSort(
     }
 
     btn.addEventListener('click', () => onSort(opt.value));
-    refs.sortContainer.appendChild(btn);
+    sortFragment.appendChild(btn);
   });
+  refs.sortContainer.appendChild(sortFragment);
 
   return element;
 }
