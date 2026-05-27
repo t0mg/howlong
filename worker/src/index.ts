@@ -285,7 +285,7 @@ async function handleHltbSearch(url: URL, ctx: ExecutionContext): Promise<Respon
       // 1. Handshake: init session
       console.log(`[Worker] HLTB Init for: ${query}`);
       const timestamp = Date.now();
-      const initRes = await fetch(`https://howlongtobeat.com/api/find/init?t=${timestamp}`, {
+      const initRes = await fetch(`https://howlongtobeat.com/api/bleed/init?t=${timestamp}`, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
           'Referer': 'https://howlongtobeat.com/',
@@ -302,7 +302,7 @@ async function handleHltbSearch(url: URL, ctx: ExecutionContext): Promise<Respon
 
       // 2. Handshake: Search with keys
       console.log(`[Worker] HLTB Search for: ${query} (key: ${hpKey})`);
-      const searchRes = await fetch('https://howlongtobeat.com/api/find', {
+      const searchRes = await fetch('https://howlongtobeat.com/api/bleed', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
