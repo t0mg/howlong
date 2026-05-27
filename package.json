@@ -9,10 +9,12 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/dompurify": "^3.0.5",
     "typescript": "~6.0.2",
     "vite": "^8.0.4"
   },
   "dependencies": {
+    "dompurify": "^3.4.7",
     "frappe-charts": "^1.6.2",
     "idb-keyval": "^6.2.2"
   }

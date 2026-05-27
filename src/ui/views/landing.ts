@@ -44,8 +44,8 @@ const TPL_LANDING = `
         </button>
       </div>
     </form>
-    <p class="help-text" data-t="landing_help"></p>
-    <p class="help-text" data-t="landing_disclaimer"></p>
+    <p class="help-text" data-t-html="landing_help"></p>
+    <p class="help-text" data-t-html="landing_disclaimer"></p>
   </div>`;
 
 // ── Landing Page ─────────────────────────────────────────────
