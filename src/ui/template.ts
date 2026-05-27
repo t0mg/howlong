@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import { t } from './i18n';
 
 export interface ViewResult<T = Record<string, HTMLElement>> {
@@ -49,7 +50,12 @@ export function html<T = Record<string, HTMLElement>>(templateStr: string): View
     // Translation of content
     const tKey = el.getAttribute('data-t');
     if (tKey) {
-      el.innerHTML = t(tKey);
+      el.textContent = t(tKey);
+    }
+
+    const tHtmlKey = el.getAttribute('data-t-html');
+    if (tHtmlKey) {
+      el.innerHTML = DOMPurify.sanitize(t(tHtmlKey));
     }
 
     // Translation of attributes
