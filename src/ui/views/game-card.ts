@@ -171,9 +171,9 @@ function renderPriceRow(priceRow: HTMLElement, game: GameEntry, currency: string
     priceRow.innerHTML = `<span class="price-free">${t('game_free')}</span>`;
   } else if (game.priceStatus === 'stale') {
     if (game.discountPercent > 0 && game.priceInitial !== null) {
-      priceRow.innerHTML += `<span class="price-original">${formatCurrency(game.priceInitial, currency)}</span>`;
+      priceRow.insertAdjacentHTML('beforeend', `<span class="price-original">${formatCurrency(game.priceInitial, currency)}</span>`);
     }
-    priceRow.innerHTML += `<span class="price-current stale">${formatCurrency(game.priceFinal || 0, currency)} ${t('game_cached')}</span>`;
+    priceRow.insertAdjacentHTML('beforeend', `<span class="price-current stale">${formatCurrency(game.priceFinal || 0, currency)} ${t('game_cached')}</span>`);
   } else if (game.priceFinal !== null) {
     if (game.discountPercent > 0 && game.priceInitial !== null) {
       const orig = document.createElement('span');
