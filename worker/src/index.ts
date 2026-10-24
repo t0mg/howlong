@@ -89,7 +89,7 @@ async function handlePricesBatch(url: URL): Promise<Response> {
 }
 
 async function handleReviews(appId: string, lang: string, ctx: ExecutionContext): Promise<Response> {
-  const cacheKey = new Request(`https://steam-reviews-cache.internal/v1/${appId}/${lang}`);
+  const cacheKey = new Request(`https://steam-reviews-cache.internal/v2/${appId}/${lang}`);
   const cache = caches.default;
 
   const cached = await cache.match(cacheKey);
@@ -104,7 +104,7 @@ async function handleReviews(appId: string, lang: string, ctx: ExecutionContext)
   }
 
   console.log(`[Worker] Fetching Reviews: ${appId} (lang: ${lang})`);
-  const steamUrl = `https://store.steampowered.com/appreviews/${appId}?json=1&language=${lang}`;
+  const steamUrl = `https://api.steampowered.com/IUserReviewsService/GetAppReviews/v1/?appid=${appId}&language=${lang}`;
 
   try {
     const res = await fetch(steamUrl, {
@@ -115,9 +115,14 @@ async function handleReviews(appId: string, lang: string, ctx: ExecutionContext)
       return jsonResponse({ error: `Steam API error: ${res.status}` }, res.status);
     }
 
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      return jsonResponse({ error: 'Invalid response from Steam' }, 502);
+    }
+
     const data: any = await res.json();
-    if (data && data.query_summary) {
-      const summary = data.query_summary;
+    const summary = data?.response?.query_summary || data?.query_summary;
+    if (summary) {
       const totalReviews = summary.total_reviews >= 10 ? summary.total_reviews : 0;
       const totalPositive = summary.total_positive || 0;
       const percent = totalReviews > 0 ? Math.round((totalPositive / totalReviews) * 100) : 0;
@@ -266,26 +271,28 @@ async function handleMetadata(appId: string, ctx: ExecutionContext): Promise<Res
   return response;
 }
 
-async function handleHltbSearch(url: URL, ctx: ExecutionContext): Promise<Response> {
-  const query = url.searchParams.get('q');
-  if (!query) {
-    return jsonResponse({ error: 'Missing ?q= parameter' }, 400);
+interface HltbSession {
+  token: string;
+  hpKey?: string;
+  hpVal?: string;
+  timestamp: number;
+}
+
+let cachedHltbToken: HltbSession | null = null;
+let tokenPromise: Promise<HltbSession> | null = null;
+
+async function getHltbToken(forceRefresh = false): Promise<HltbSession> {
+  // If we have a cached token less than 15 minutes old, reuse it
+  if (!forceRefresh && cachedHltbToken && (Date.now() - cachedHltbToken.timestamp < 15 * 60 * 1000)) {
+    return cachedHltbToken;
   }
 
-  const cacheKey = new Request(`https://hltb-cache.internal/${query}`);
-  const cache = caches.default;
-
-  // 1. Check if we already have the FINAL result
-  let response = await cache.match(cacheKey);
-
-  if (!response) {
-    console.log("[Worker] HLTB Cache Miss: Starting fetch chain...");
-
-    try {
-      // 1. Handshake: init session
-      console.log(`[Worker] HLTB Init for: ${query}`);
+  // Deduplicate concurrent token fetches so only one /init request goes out
+  if (!tokenPromise || forceRefresh) {
+    tokenPromise = (async () => {
+      console.log("[Worker] Fetching fresh HLTB init token...");
       const timestamp = Date.now();
-      const initRes = await fetch(`https://howlongtobeat.com/api/bleed/init?t=${timestamp}`, {
+      const initRes = await fetch(`https://howlongtobeat.com/api/search/site/init?t=${timestamp}`, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
           'Referer': 'https://howlongtobeat.com/',
@@ -295,28 +302,66 @@ async function handleHltbSearch(url: URL, ctx: ExecutionContext): Promise<Respon
       });
 
       if (!initRes.ok) throw new Error(`HLTB Init failed: ${initRes.status}`);
-      const { token, hpKey, hpVal } = await initRes.json() as any;
+      const initData = await initRes.json() as any;
+      if (!initData?.token) throw new Error('HLTB Init did not return a token');
 
-      // 1.5 Safety delay to mimic human behavior
-      await new Promise(resolve => setTimeout(resolve, 100));
+      const session: HltbSession = {
+        token: initData.token,
+        hpKey: initData.hpKey,
+        hpVal: initData.hpVal,
+        timestamp: Date.now(),
+      };
+      cachedHltbToken = session;
+      return session;
+    })().finally(() => {
+      tokenPromise = null;
+    });
+  }
 
-      // 2. Handshake: Search with keys
-      console.log(`[Worker] HLTB Search for: ${query} (key: ${hpKey})`);
-      const searchRes = await fetch('https://howlongtobeat.com/api/bleed', {
-        method: 'POST',
-        headers: {
+  return await tokenPromise;
+}
+
+async function handleHltbSearch(url: URL, ctx: ExecutionContext): Promise<Response> {
+  const query = url.searchParams.get('q');
+  if (!query) {
+    return jsonResponse({ error: 'Missing ?q= parameter' }, 400);
+  }
+
+  const cacheKey = new Request(`https://hltb-cache.internal/${encodeURIComponent(query)}`);
+  const cache = caches.default;
+
+  // 1. Check if we already have the FINAL result
+  let response = await cache.match(cacheKey);
+
+  if (!response) {
+    console.log("[Worker] HLTB Cache Miss: Starting fetch chain...");
+
+    try {
+      let attempts = 0;
+      const maxAttempts = 3;
+      let searchData: any = null;
+
+      while (attempts < maxAttempts) {
+        attempts++;
+        const isRetry = attempts > 1;
+        const { token, hpKey, hpVal } = await getHltbToken(isRetry);
+
+        const searchHeaders: Record<string, string> = {
           'Content-Type': 'application/json',
           'x-auth-token': token,
-          'x-hp-key': hpKey,
-          'x-hp-val': hpVal,
           'Origin': 'https://howlongtobeat.com',
           'Referer': 'https://howlongtobeat.com/',
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
           'Accept': '*/*',
-        },
-        body: JSON.stringify({
+        };
+        if (hpKey && hpVal) {
+          searchHeaders['x-hp-key'] = hpKey;
+          searchHeaders['x-hp-val'] = hpVal;
+        }
+
+        const searchBody: Record<string, any> = {
           searchType: "games",
-          searchTerms: query.toLowerCase().split(/\s+/), // Cleaned & lowercased
+          searchTerms: query.toLowerCase().split(/\s+/),
           searchPage: 1,
           size: 20,
           searchOptions: {
@@ -327,7 +372,7 @@ async function handleHltbSearch(url: URL, ctx: ExecutionContext): Promise<Respon
               rangeCategory: "main",
               rangeTime: { min: null, max: null },
               gameplay: { perspective: "", flow: "", genre: "", difficulty: "" },
-              rangeYear: { min: "", max: "" },
+              year: "",
               modifier: ""
             },
             users: { sortCategory: "postcount" },
@@ -337,14 +382,30 @@ async function handleHltbSearch(url: URL, ctx: ExecutionContext): Promise<Respon
             randomizer: 0
           },
           useCache: true,
-          [hpKey]: hpVal, // Dynamic security property
-        }),
-      });
+        };
+        if (hpKey && hpVal) {
+          searchBody[hpKey] = hpVal;
+        }
 
-      if (!searchRes.ok) throw new Error(`HLTB Search failed: ${searchRes.status}`);
-      const searchData = await searchRes.json() as any;
+        const searchRes = await fetch('https://howlongtobeat.com/api/search/site', {
+          method: 'POST',
+          headers: searchHeaders,
+          body: JSON.stringify(searchBody),
+        });
 
-      const results = (searchData.data || []).map((r: any) => ({
+        if (searchRes.status === 403 && attempts < maxAttempts) {
+          console.warn(`[Worker] HLTB 403 for "${query}", refreshing token (attempt ${attempts}/${maxAttempts})...`);
+          cachedHltbToken = null;
+          await new Promise(r => setTimeout(r, 100));
+          continue;
+        }
+
+        if (!searchRes.ok) throw new Error(`HLTB Search failed: ${searchRes.status}`);
+        searchData = await searchRes.json() as any;
+        break;
+      }
+
+      const results = (searchData?.data || []).map((r: any) => ({
         id: r.game_id?.toString(),
         name: r.game_name,
         imageUrl: r.game_image ? `https://howlongtobeat.com/games/${r.game_image}` : null,
@@ -366,8 +427,9 @@ async function handleHltbSearch(url: URL, ctx: ExecutionContext): Promise<Respon
       // Use waitUntil so the user doesn't wait for the cache write
       ctx.waitUntil(cache.put(cacheKey, response.clone()));
     } catch (err: unknown) {
+      const message = err instanceof Error ? (err.stack || err.message) : String(err);
       console.error('[Worker] HLTB Error:', err);
-      response = jsonResponse({ error: 'HLTB lookup failed' }, 500);
+      response = jsonResponse({ error: 'HLTB lookup failed', detail: message }, 500);
     }
 
   } else {

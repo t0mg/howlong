@@ -270,7 +270,7 @@ export async function fetchWishlistPipeline(state: AppState): Promise<GameEntry[
   renderLoading(state);
 
   // Second pass: Fetch missing ones from API
-  const HLTB_BATCH_SIZE = 10;
+  const HLTB_BATCH_SIZE = 5;
   let hltbHits = 0;
   let hltbMisses = 0;
 
